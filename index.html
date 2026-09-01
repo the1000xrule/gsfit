@@ -1,0 +1,3586 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- 아래 두 줄은 이 파일을 로컬 file://로 직접 열 때는 조용히 무시되고,
+     GitHub Pages 같은 곳에 올려서 온라인으로 쓸 때만 "홈 화면에 추가"와 오프라인 캐싱을 켠다. -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0f172a" />
+<title>GS Fit</title>
+<style>
+  :root {
+    /* 토스 디자인 시스템(TDS) 공식 컬러 토큰 기준: blue500/blue50, grey900/grey50, red500, green500 */
+    --color-bg: #f2f4f6;
+    --color-surface: #ffffff;
+    --color-border: #e5e8eb;
+    --color-ink: #191f28;
+    --color-ink-muted: #8b95a1;
+    --color-brand: #3182f6;
+    --color-brand-light: #5b9df9;
+    --color-accent: #3182f6;
+    --color-accent-light: #e8f3ff;
+    --color-positive: #03b26c;
+    --color-negative: #f04452;
+    --color-neutral: #8b95a1;
+    --color-prev-month: #d1d6db;
+    --color-press: rgba(25, 31, 40, 0.05);
+    --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+    /* 하단 내비게이션 전용 브랜드 보라색: 핵심 행동(기록 추가 FAB)과 활성 상태에만 제한적으로 사용 */
+    --nav-active: #6D5CE7;
+    --nav-inactive: #9CA3AF;
+    --nav-fab-bg: #6D5CE7;
+    --nav-fab-shadow: 0 4px 14px rgba(109, 92, 231, 0.35);
+    /* 카테고리별 아이콘 배지 배경 (라이트) */
+    --tint-company: #e8f3ff;
+    --tint-exercise: #f3e8ff;
+    --tint-family: #ffe8ef;
+    --tint-side_project: #eaecff;
+    --tint-extra_income: #fff6d9;
+    --tint-self_time: #e3faf0;
+    --tint-thought: #eef0f2;
+    --tint-investment: #e0f7fa;
+  }
+  html[data-theme="dark"] {
+    --color-bg: #101114;
+    --color-surface: #1c1e22;
+    --color-border: #32353b;
+    --color-ink: #f2f4f6;
+    --color-ink-muted: #8b95a1;
+    --color-brand: #4b9eff;
+    --color-brand-light: #7ab8ff;
+    --color-accent: #4b9eff;
+    --color-accent-light: rgba(75, 158, 255, 0.16);
+    --color-positive: #3ddc97;
+    --color-negative: #ff6b6b;
+    --color-neutral: #9aa4b2;
+    --color-prev-month: #454b54;
+    --color-press: rgba(255, 255, 255, 0.06);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.24), 0 8px 24px rgba(0, 0, 0, 0.32);
+    color-scheme: dark;
+    --nav-active: #8d7ef2;
+    --nav-inactive: #7a808c;
+    --nav-fab-bg: #6D5CE7;
+    --nav-fab-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+    /* 카테고리별 아이콘 배지 배경 (다크) */
+    --tint-company: rgba(75, 158, 255, 0.18);
+    --tint-exercise: rgba(191, 120, 246, 0.2);
+    --tint-family: rgba(255, 120, 160, 0.18);
+    --tint-side_project: rgba(140, 148, 255, 0.2);
+    --tint-extra_income: rgba(255, 205, 70, 0.18);
+    --tint-self_time: rgba(60, 220, 150, 0.18);
+    --tint-thought: rgba(255, 255, 255, 0.08);
+    --tint-investment: rgba(45, 212, 191, 0.2);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: "Pretendard Variable", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", system-ui, sans-serif;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+  a { color: inherit; text-decoration: none; }
+  button { transition: transform .12s ease, opacity .12s ease, background-color .12s ease; }
+  button:active { transform: scale(0.97); }
+
+  #app { min-height: 100vh; }
+  .sidebar {
+    position: fixed; inset: 0 auto 0 0; width: 220px;
+    background: var(--color-surface); border-right: 1px solid var(--color-border);
+    padding: 20px 14px; display: none;
+  }
+  .brand { font-size: 18px; font-weight: 700; color: var(--color-brand); padding: 0 8px 24px; }
+  .navlist { display: flex; flex-direction: column; gap: 2px; }
+  .navitem {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
+    font-size: 14px; font-weight: 500; color: var(--color-ink-muted); cursor: pointer; border: none; background: none; text-align: left; width: 100%;
+  }
+  .navitem .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-border); flex-shrink: 0; }
+  .navitem.active { background: var(--color-accent-light); color: var(--color-brand); }
+  .navitem.active .dot { background: var(--color-brand); }
+  .navitem:hover:not(.active) { background: var(--color-press); }
+
+  main { padding-bottom: 104px; }
+  /* 모바일 키보드가 올라오면(visualViewport 축소 감지) 하단 고정 내비게이션을 잠시 숨겨서,
+     입력 필드나 만족도 버튼 같은 요소가 키보드/하단 바에 가려지지 않도록 한다. */
+  body.kb-open .bottom-nav { display: none; }
+  body.kb-open main { padding-bottom: 24px; }
+  .icon-btn {
+    width: 38px; height: 38px; border-radius: 50%; border: none; background: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; color: var(--color-ink-muted); font-size: 16px;
+  }
+  .icon-btn:hover { background: var(--color-press); }
+
+  .view { padding: 18px 16px 24px; }
+  .card {
+    background: var(--color-surface); border-radius: 20px; box-shadow: var(--shadow-card);
+    padding: 18px;
+  }
+  .card + .card { margin-top: 14px; }
+  .section-title { font-size: 15px; font-weight: 700; margin: 0 0 10px; letter-spacing: -0.01em; }
+  .muted { color: var(--color-ink-muted); }
+  .small { font-size: 12px; }
+  .tiny { font-size: 11px; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+  .stat-card { background: var(--color-surface); border-radius: 18px; box-shadow: var(--shadow-card); padding: 16px; }
+  .stat-label { font-size: 12px; color: var(--color-ink-muted); margin-bottom: 6px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+  /* 라이프 점수·조화지수처럼 낯선 용어 옆에 붙는 설명 버튼. 탭하면 정보 시트가 뜬다. */
+  .info-btn {
+    border: none; background: none; padding: 0; margin: 0; color: var(--color-ink-muted);
+    font-size: 12px; line-height: 1; cursor: pointer; display: inline-flex; align-items: center;
+    justify-content: center; width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+  }
+  .info-btn:active { background: var(--color-accent-light); }
+  .stat-value { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+  .stat-delta { font-size: 12px; margin-top: 4px; font-weight: 600; }
+  .up { color: var(--color-positive); } .down { color: var(--color-negative); } .flat { color: var(--color-neutral); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    border-radius: 14px; border: 1px solid var(--color-border); background: var(--color-surface);
+    padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--color-ink);
+    transition: transform .12s ease, opacity .12s ease, background-color .12s ease;
+  }
+  .btn:hover { background: var(--color-press); }
+  .btn-primary { background: var(--color-brand); color: #fff; border-color: var(--color-brand); }
+  .btn-primary:hover { background: var(--color-brand-light); }
+  .btn-danger { color: var(--color-negative); border-color: var(--color-negative); background: none; }
+  .btn-block { width: 100%; padding: 15px; border-radius: 18px; font-size: 15px; font-weight: 700; }
+  .btn[disabled] { opacity: .5; cursor: default; }
+
+  label.field { display: block; margin-bottom: 14px; }
+  .field-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  /* 금액(원) 입력란 아래 "9,000원"처럼 천 단위 콤마를 넣어 보여주는 실시간 미리보기 */
+  .amount-hint { display: block; margin-top: 4px; font-size: 12px; color: var(--color-ink-muted); min-height: 15px; }
+  .input, select.input, textarea.input {
+    width: 100%; border: 1px solid var(--color-border); border-radius: 10px; background: transparent;
+    padding: 10px 12px; font-size: 14px; color: var(--color-ink);
+  }
+  textarea.input { resize: vertical; min-height: 56px; }
+  .input:focus, select.input:focus, textarea.input:focus { outline: 2px solid var(--color-accent-light); border-color: var(--color-brand); }
+
+  .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    border: 1px solid var(--color-border); border-radius: 999px; padding: 7px 14px; font-size: 13px; cursor: pointer; background: none; color: var(--color-ink);
+  }
+  .chip.selected { border-color: var(--color-brand); background: var(--color-accent-light); color: var(--color-brand); font-weight: 600; }
+
+  .tile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .tile {
+    background: var(--color-surface); border-radius: 20px; box-shadow: var(--shadow-card); padding: 16px;
+    display: flex; flex-direction: column; gap: 6px; cursor: pointer; border: none; text-align: left; color: var(--color-ink);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .tile:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(15, 23, 42, 0.06), 0 12px 28px rgba(15, 23, 42, 0.09); }
+  .tile .badge { width: 40px; height: 40px; border-radius: 12px; background: var(--color-accent-light); color: var(--color-brand); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 19px; line-height: 1; }
+  .badge-company { background: var(--tint-company); }
+  .badge-exercise { background: var(--tint-exercise); }
+  .badge-family { background: var(--tint-family); }
+  .badge-side_project { background: var(--tint-side_project); }
+  .badge-extra_income { background: var(--tint-extra_income); }
+  .badge-self_time { background: var(--tint-self_time); }
+  .badge-thought { background: var(--tint-thought); }
+  .badge-investment { background: var(--tint-investment); }
+  .tile .t-label { font-size: 14px; font-weight: 700; }
+  .tile .t-desc { font-size: 11px; color: var(--color-ink-muted); }
+  .ex-del {
+    position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--color-ink-muted); color: #fff; font-size: 13px; line-height: 1;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2);
+  }
+  .ex-del:hover { background: var(--color-negative); }
+
+  .segmented { display: flex; background: var(--color-bg); border-radius: 12px; padding: 3px; gap: 2px; margin-top: 10px; }
+  .segmented button {
+    flex: 1; border: none; background: none; padding: 8px 10px; font-size: 13px; font-weight: 600;
+    color: var(--color-ink-muted); border-radius: 9px; cursor: pointer; transition: background-color .12s ease, color .12s ease;
+  }
+  .segmented button.active { background: var(--color-surface); color: var(--color-ink); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08); }
+
+  .range-label { font-size: 12px; color: var(--color-ink-muted); text-align: center; margin-top: 10px; }
+  .chart-legend { display: flex; gap: 16px; justify-content: center; margin-top: 2px; font-size: 12px; color: var(--color-ink-muted); }
+  .chart-legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+
+  .cmp-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--color-border); }
+  .cmp-row:last-child { border-bottom: none; }
+  .cmp-row .badge { width: 36px; height: 36px; border-radius: 10px; font-size: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .cmp-info { flex: 1; min-width: 0; }
+  .cmp-label { font-size: 14px; font-weight: 700; }
+  .cmp-values { font-size: 12px; color: var(--color-ink-muted); margin-top: 2px; }
+  .delta-pill { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; flex-shrink: 0; }
+  .delta-pill.up { color: var(--color-positive); background: rgba(3, 178, 108, 0.12); }
+  .delta-pill.down { color: var(--color-negative); background: rgba(240, 68, 82, 0.12); }
+  .delta-pill.flat { color: var(--color-neutral); background: var(--color-press); }
+
+  .tabbar { display: flex; gap: 8px; margin-bottom: 14px; }
+  .tabbar .tabbtn {
+    border-radius: 999px; padding: 7px 16px; font-size: 13px; font-weight: 600; border: 1px solid var(--color-border); background: none; cursor: pointer; color: var(--color-ink);
+  }
+  .tabbar .tabbtn.active { background: var(--color-brand); color: #fff; border-color: var(--color-brand); }
+
+  /* 하단 내비게이션: 이모지 없이 Lucide 라인 아이콘 + 텍스트, 활성 상태는 색상만으로 표현 */
+  .bottom-nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; align-items: flex-start;
+    background: var(--color-surface); border-top: 1px solid var(--color-border);
+    padding: 10px 4px calc(10px + env(safe-area-inset-bottom));
+  }
+  .bottom-nav button {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    min-height: 44px; padding: 2px 0;
+    font-size: 11px; font-weight: 600; border: none; background: none; cursor: pointer; color: var(--nav-inactive);
+    transition: color .12s ease;
+  }
+  .bottom-nav button.active { color: var(--nav-active); }
+  .bnav-icon { display: flex; align-items: center; justify-content: center; line-height: 1; }
+  .bnav-icon svg { display: block; width: 22px; height: 22px; }
+  .bnav-label { font-size: 11px; }
+  /* 중앙 "기록 추가" 플로팅 버튼: 56px 원형, 브랜드 보라색, 흰색 Plus 아이콘, 하단 바 위로 약 16px 돌출 */
+  .bottom-nav button.bnav-fab {
+    flex: 0 0 auto; width: 56px; height: 56px; padding: 0; margin: -27px 6px 0; border-radius: 50%;
+    background: var(--nav-fab-bg); border: none; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--nav-fab-shadow); cursor: pointer;
+  }
+  .bnav-fab-icon { display: flex; align-items: center; justify-content: center; line-height: 1; }
+  .bnav-fab-icon svg { display: block; width: 24px; height: 24px; }
+  /* DOM 순서(홈·기록 추가·기록·월간 분석·설정)는 그대로 두고,
+     시각적으로만 "기록 추가" + 버튼을 가운데(3번째)로 옮긴다. */
+  .bottom-nav button:nth-child(1) { order: 1; }
+  .bottom-nav button:nth-child(2) { order: 3; }
+  .bottom-nav button:nth-child(3) { order: 2; }
+  .bottom-nav button:nth-child(4) { order: 4; }
+  .bottom-nav button:nth-child(5) { order: 5; }
+
+  /*
+   * 좁은 화면(모바일)에서 "영역" 열처럼 짧고 줄바꿈이 없어야 하는 열이 브라우저 auto 레이아웃
+   * 때문에 지나치게 좁아지면, 공백 없는 한글 단어(예: "프로젝트")가 한 글자씩 세로로 쪼개져
+   * 보이는 문제가 있었다. 날짜·영역·버튼 열은 줄바꿈을 막아서 항상 필요한 만큼의 너비를
+   * 확보하고, "내용" 열만 남은 공간 안에서 자연스럽게 줄바꿈되게 한다(단어 단위로 끊어지도록
+   * word-break: keep-all). 그래도 폭이 정말 부족한 경우에만 .table-wrap의 가로 스크롤로 넘어간다.
+   */
+  table.rt { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.rt th { text-align: left; padding: 8px 10px; font-size: 11px; color: var(--color-ink-muted); border-bottom: 1px solid var(--color-border); }
+  table.rt td { padding: 9px 10px; border-bottom: 1px solid var(--color-border); }
+  table.rt tr:last-child td { border-bottom: none; }
+  table.rt th:nth-child(1), table.rt td:nth-child(1),
+  table.rt th:nth-child(2), table.rt td:nth-child(2) { white-space: nowrap; }
+  table.rt td:nth-child(3), table.rt th:nth-child(3) { word-break: keep-all; overflow-wrap: break-word; }
+  table.rt td:last-child { width: 1px; }
+  .rt-actions { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+  .rt-actions .btn { white-space: nowrap; flex-shrink: 0; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%);
+    background: var(--color-ink); color: var(--color-bg); padding: 10px 18px; border-radius: 999px;
+    font-size: 13px; font-weight: 600; box-shadow: var(--shadow-card); z-index: 50; opacity: 0; pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+  .toast.toast-error { background: var(--color-negative); color: #fff; }
+
+  .legend-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; font-size: 12px; }
+  .legend-item { background: var(--color-press); border-radius: 12px; padding: 10px 12px; }
+  .legend-item b { font-weight: 700; margin-left: 4px; }
+
+  .insight-item { border-radius: 12px; box-shadow: var(--shadow-card); background: var(--color-surface); padding: 10px 12px; font-size: 13px; margin-bottom: 8px; }
+  .insight-item:last-child { margin-bottom: 0; }
+
+  /* 홈 화면 하단의 "이번 달 기록 캘린더" — 하루라도 기록이 있으면 날짜를 브랜드 색 원으로 표시한다. */
+  .cal-streak { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+  .cal-nav-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .cal-nav-btn {
+    border: none; background: var(--color-accent-light); color: var(--color-ink); width: 30px; height: 30px;
+    border-radius: 50%; font-size: 15px; line-height: 1; cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cal-nav-btn:disabled { opacity: 0.35; cursor: default; }
+  .cal-dow-row, .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .cal-dow-row { margin-top: 10px; }
+  .cal-dow { text-align: center; font-size: 11px; font-weight: 600; color: var(--color-ink-muted); padding-bottom: 6px; }
+  .cal-grid { row-gap: 4px; }
+  .cal-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
+  .cal-cell.cal-empty { visibility: hidden; }
+  .cal-num {
+    width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; color: var(--color-ink); position: relative;
+    border: none; background: none; padding: 0; font-family: inherit; cursor: pointer;
+  }
+  .cal-cell.cal-has-record .cal-num { background: var(--color-brand); color: #fff; font-weight: 700; }
+  .cal-cell.cal-today .cal-num::after {
+    content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 1.5px solid var(--nav-active);
+  }
+  .cal-legend { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 11px; color: var(--color-ink-muted); }
+  .cal-legend .cal-dot-sample { width: 10px; height: 10px; border-radius: 50%; background: var(--color-brand); flex-shrink: 0; }
+
+  .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .slider-row label { width: 96px; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+  .slider-row input[type=range] { flex: 1; }
+  .slider-row .sv { width: 22px; text-align: right; font-size: 12px; font-weight: 700; color: var(--color-brand); }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .empty-note { border: 1px dashed var(--color-border); border-radius: 16px; padding: 22px; text-align: center; color: var(--color-ink-muted); font-size: 13px; }
+
+  /* "기록 추가" 바텀시트: 중앙 + 버튼을 누르면 뜨는 기록 항목 선택 시트 */
+  .sheet-backdrop {
+    position: fixed; inset: 0; z-index: 40; background: rgba(15, 23, 42, 0.45);
+    opacity: 0; pointer-events: none; transition: opacity .2s ease;
+  }
+  .sheet-backdrop.show { opacity: 1; pointer-events: auto; }
+  .record-sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; max-height: 82vh; overflow-y: auto;
+    background: var(--color-surface); border-radius: 20px 20px 0 0;
+    padding: 10px 16px calc(20px + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.16);
+    transform: translateY(100%); transition: transform .25s ease;
+  }
+  .record-sheet.show { transform: translateY(0); }
+  .sheet-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--color-border); margin: 4px auto 14px; }
+  .sheet-title { font-size: 15px; font-weight: 700; margin: 0 0 10px; }
+  .sheet-row {
+    width: 100%; display: flex; align-items: center; gap: 12px; padding: 11px 4px;
+    border: none; background: none; cursor: pointer; text-align: left; color: var(--color-ink);
+    border-bottom: 1px solid var(--color-border); min-height: 44px;
+  }
+  .sheet-row:last-child { border-bottom: none; }
+  .sheet-row .badge { width: 38px; height: 38px; border-radius: 11px; font-size: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .sheet-row-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .sheet-row-label { font-size: 14px; font-weight: 700; }
+  .sheet-row-desc { font-size: 11px; color: var(--color-ink-muted); }
+
+  @media (min-width: 860px) {
+    .sidebar { display: block; }
+    main { margin-left: 220px; padding-bottom: 40px; }
+    .bottom-nav { display: none; }
+    .view { padding: 28px 32px 32px; max-width: 880px; }
+    .tile-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside class="sidebar">
+    <div class="brand">GS Fit</div>
+    <nav class="navlist" id="sidebarNav"></nav>
+  </aside>
+  <main>
+    <div class="view" id="viewRoot"></div>
+  </main>
+  <nav class="bottom-nav" id="bottomNav"></nav>
+  <div class="sheet-backdrop" id="recordSheetBackdrop"></div>
+  <div class="record-sheet" id="recordSheet" role="dialog" aria-modal="true" aria-label="기록 추가">
+    <div class="sheet-handle"></div>
+    <h2 class="sheet-title">기록 추가</h2>
+    <div id="recordSheetList"></div>
+  </div>
+  <div class="sheet-backdrop" id="infoSheetBackdrop"></div>
+  <div class="record-sheet" id="infoSheet" role="dialog" aria-modal="true" aria-label="설명">
+    <div class="sheet-handle"></div>
+    <h2 class="sheet-title" id="infoSheetTitle"></h2>
+    <p class="small" id="infoSheetBody" style="line-height:1.7; color:var(--color-ink);"></p>
+    <button type="button" class="btn btn-block" id="infoSheetClose" style="margin-top:6px;">닫기</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================== 저장소 ============================== */
+  var STORAGE_KEY = "lifehex_v1";
+
+  // 6개 영역 모두 동일한 기준으로 평가한다: 영역 최종점수 = 객관지표 100% (만족도는 점수에 반영하지 않음),
+  // 그리고 라이프 점수는 6개 영역 점수를 단순 평균(각 1/6, 완전 동률)한다.
+  var DEFAULT_WEIGHTS = {
+    company: { objective: 1, satisfaction: 0 },
+    exercise: { objective: 1, satisfaction: 0 },
+    family: { objective: 1, satisfaction: 0 },
+    side_project: { objective: 1, satisfaction: 0 },
+    extra_income: { objective: 1, satisfaction: 0 },
+    self_time: { objective: 1, satisfaction: 0 }
+  };
+
+  var CATEGORY_KEYS = ["company", "exercise", "family", "side_project", "extra_income", "self_time"];
+  var CATEGORY_LABELS = {
+    company: "회사", exercise: "운동", family: "가족",
+    side_project: "프로젝트", extra_income: "소득", self_time: "셀프케어"
+  };
+
+  function defaultData() {
+    return {
+      version: 1,
+      // 이 기기의 기록이 마지막으로 바뀐 시각. 로컬 전용으로 쓸 때는 아무 의미도 없고,
+      // "클라우드 동기화(구글 시트)"를 켰을 때만 어느 쪽이 더 최신인지 비교하는 데 쓰인다.
+      _sync: { updatedAt: null },
+      companyActivities: [],
+      leaveRecords: [],
+      exerciseRecords: [],
+      familyRecords: [],
+      sideProjects: [],
+      projectProgressLogs: [],
+      extraIncomes: [],
+      selfTimeRecords: [],
+      thoughtRecords: [],
+      investmentRecords: [],
+      monthlySatisfaction: {},
+      targets: {
+        familyParentsContactPerMonth: 8,
+        familyParentsMinutesPerMonth: 120,
+        familyStarContactPerMonth: 8,
+        familyStarMinutesPerMonth: 600,
+        selfTimeActivitiesPerMonth: 4,
+        selfTimeMonthlyHoursTarget: 40,
+        incomeMonthlyTargetKrw: 3000000,
+        exerciseWeeklyTarget: 4,
+        sideProjectActiveTarget: 5,
+        companyMealMonthlyTarget: 5
+      },
+      settings: {
+        onTimeThreshold: "18:20", theme: "light", customExerciseTypes: [],
+        // 라이프 코치 피드백을 실제 LLM(Claude API) 호출로 받고 싶을 때만 채우는 값들.
+        // 비워두면 기존처럼 완전히 오프라인인 로컬 규칙 기반 피드백을 사용한다.
+        coachApiKey: "", coachModel: "claude-haiku-4-5-20251001"
+      }
+    };
+  }
+
+  /**
+   * 저장된 데이터(또는 가져오기한 JSON)에 새 버전에서 추가된 필드가 빠져 있어도 안전하게 채워 넣는다.
+   * localStorage에서 불러올 때와 "가져오기"로 외부 JSON을 불러올 때 모두 이 함수를 거친다 —
+   * 그러지 않으면 예전 백업 파일을 가져왔을 때 없는 배열/설정 필드 때문에 렌더링이 예외로 죽을 수 있다.
+   */
+  function normalizeData(parsed) {
+    var base = defaultData();
+    for (var k in base) { if (!(k in parsed) || parsed[k] == null) parsed[k] = base[k]; }
+    parsed.targets = Object.assign({}, base.targets, parsed.targets || {});
+    parsed.settings = Object.assign({}, base.settings, parsed.settings || {});
+    // 추가소득 목표 기본값이 예전(30만원)으로 저장돼 있고 사용자가 직접 바꾼 적이 없다면
+    // 새 기본값(300만원)으로 한 번만 올려준다. 이미 직접 다른 값으로 바꿨다면 건드리지 않는다.
+    if (parsed.targets.incomeMonthlyTargetKrw === 300000 && !parsed.settings.incomeTargetMigratedV2) {
+      parsed.targets.incomeMonthlyTargetKrw = 3000000;
+    }
+    parsed.settings.incomeTargetMigratedV2 = true;
+    // claude-3-5-haiku(-latest)는 Anthropic이 2026-02-19에 완전히 은퇴시킨 모델이다. 예전에
+    // 저장된 설정이 그 값을 그대로 갖고 있으면 호출이 항상 실패해서 로컬 피드백으로만 조용히
+    // 대체되므로, 사용자가 직접 다른 모델로 바꾼 적이 없는 한 최신 Haiku로 한 번만 올려준다.
+    if (/^claude-3-5-haiku(-latest)?$/.test(parsed.settings.coachModel || "")) {
+      parsed.settings.coachModel = "claude-haiku-4-5-20251001";
+    }
+    return parsed;
+  }
+
+  var DB = (function () {
+    var data = load();
+    function load() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return defaultData();
+        return normalizeData(JSON.parse(raw));
+      } catch (e) {
+        console.error("데이터를 불러오지 못해 초기 상태로 시작합니다.", e);
+        return defaultData();
+      }
+    }
+    function save() {
+      try {
+        if (!data._sync) data._sync = { updatedAt: null };
+        data._sync.updatedAt = new Date().toISOString();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        return true;
+      } catch (e) {
+        console.error("저장 실패", e);
+        return false;
+      }
+    }
+    return {
+      get: function () { return data; },
+      save: save,
+      replace: function (newData) { data = normalizeData(newData); save(); },
+      reset: function () { data = defaultData(); save(); }
+    };
+  })();
+
+  /* ============================== 클라우드 동기화 (구글 시트, 선택 기능) ==============================
+   * 개인용으로 휴대폰/PC 등 여러 기기에서 같은 기록을 이어보고 싶을 때만 쓰는 기능이다. 기본값은
+   * 완전히 꺼져 있고(설정 화면에서 구글 OAuth 클라이언트 ID를 입력하기 전까지는 아무 네트워크
+   * 요청도 만들지 않는다), 켜지 않으면 지금까지와 100% 동일하게 이 브라우저 안에만 저장된다.
+   *
+   * 동기화 대상은 "기록" 10종(회사·퇴근·운동·가족·프로젝트·프로젝트진행로그·소득·셀프케어·생각·투자)
+   * 뿐이다. 테마·목표·AI 키 같은 설정은 기기마다 달라도 되는 값이라 동기화하지 않고 기기별로 둔다
+   * (API 키는 특히 구글 시트 같은 곳에 올리지 않는 게 안전하다).
+   *
+   * 동기화 방식은 "레코드 단위 병합"이 아니라 "기기 전체 스냅샷 비교"다: 이 기기가 마지막으로
+   * 저장한 시각(_sync.updatedAt)과 시트에 적힌 시각을 비교해서, 더 최신인 쪽 전체 내용으로 다른
+   * 쪽을 통째로 맞춘다. 그래서 두 기기를 동시에 오프라인으로 각각 기록한 뒤 나중에 순서대로
+   * 동기화하면 나중에 동기화한 쪽이 이길 수 있는데, 그런 상황(양쪽 다 마지막 동기화 이후 바뀐 것이
+   * 감지된 경우)에는 조용히 덮어쓰지 않고 사용자에게 먼저 확인을 구한다.
+   */
+  var Sync = (function () {
+    var SHEET_TABS = {
+      companyActivities: "company", leaveRecords: "leave", exerciseRecords: "exercise",
+      familyRecords: "family", sideProjects: "side_project", projectProgressLogs: "project_progress",
+      extraIncomes: "extra_income", selfTimeRecords: "self_time", thoughtRecords: "thought",
+      investmentRecords: "investment"
+    };
+    var RECORD_KEYS = Object.keys(SHEET_TABS);
+    var META_TAB = "_meta";
+    var SHEET_TITLE = "GS Fit 데이터";
+    var LS_CLIENT_ID = "lifehex_sync_client_id";
+    var LS_SHEET_ID = "lifehex_sync_sheet_id";
+    var LS_LAST_REMOTE = "lifehex_sync_last_remote";
+    var SCOPES = "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email";
+
+    var accessToken = null;
+    var tokenClient = null;
+    var gisReady = false;
+    var listeners = [];
+    var status = { configured: !!getClientId(), signedIn: false, syncing: false, lastSyncedAt: null, email: null, error: null };
+    var pushDebounceTimer = null;
+
+    function emit() { listeners.forEach(function (fn) { try { fn(status); } catch (e) { /* 무시 */ } }); }
+    function on(fn) { listeners.push(fn); }
+    function getStatus() { return status; }
+
+    function getClientId() { return localStorage.getItem(LS_CLIENT_ID) || ""; }
+    function setClientId(v) {
+      if (v) localStorage.setItem(LS_CLIENT_ID, v); else localStorage.removeItem(LS_CLIENT_ID);
+      status.configured = !!v;
+      accessToken = null; status.signedIn = false; status.email = null; status.error = null;
+      gisReady = false; tokenClient = null;
+      if (v) loadGis();
+      emit();
+    }
+
+    function loadGis() {
+      if (!getClientId() || gisReady) return;
+      if (window.google && window.google.accounts && window.google.accounts.oauth2) { initTokenClient(); return; }
+      if (document.getElementById("gsiScript")) return;
+      var s = document.createElement("script");
+      s.id = "gsiScript";
+      s.src = "https://accounts.google.com/gsi/client";
+      s.async = true;
+      s.onload = initTokenClient;
+      s.onerror = function () { status.error = "구글 로그인 스크립트를 불러오지 못했어요(인터넷 연결을 확인해주세요)."; emit(); };
+      document.head.appendChild(s);
+    }
+    function initTokenClient() {
+      if (!window.google || !getClientId()) return;
+      gisReady = true;
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: getClientId(), scope: SCOPES, callback: function () {}
+      });
+    }
+
+    function authHeaders() { return { Authorization: "Bearer " + accessToken }; }
+    function jsonHeaders() { return { "Content-Type": "application/json", Authorization: "Bearer " + accessToken }; }
+    function sheetsBase(id) { return "https://sheets.googleapis.com/v4/spreadsheets/" + id; }
+
+    function fetchEmail() {
+      fetch("https://www.googleapis.com/oauth2/v3/userinfo", { headers: authHeaders() })
+        .then(function (r) { return r.json(); })
+        .then(function (j) { status.email = j.email || null; emit(); })
+        .catch(function () { /* 표시용 정보라 실패해도 무시 */ });
+    }
+
+    function signIn(cb) {
+      if (!getClientId()) { cb && cb(new Error("설정 필요")); return; }
+      loadGis();
+      function attempt() {
+        if (!tokenClient) { setTimeout(attempt, 200); return; }
+        tokenClient.callback = function (resp) {
+          if (resp.error) { status.error = "로그인이 취소됐거나 실패했어요."; emit(); cb && cb(new Error(resp.error)); return; }
+          accessToken = resp.access_token;
+          status.signedIn = true; status.error = null;
+          fetchEmail();
+          emit();
+          cb && cb(null);
+        };
+        tokenClient.requestAccessToken({ prompt: "consent" });
+      }
+      attempt();
+    }
+    function signOut() {
+      if (accessToken && window.google) {
+        try { google.accounts.oauth2.revoke(accessToken, function () {}); } catch (e) { /* 무시 */ }
+      }
+      accessToken = null;
+      status.signedIn = false; status.email = null; status.error = null;
+      emit();
+    }
+    function ensureToken(cb) {
+      if (!getClientId()) { cb(new Error("설정 필요")); return; }
+      if (accessToken) { cb(null); return; }
+      loadGis();
+      function attempt(triesLeft) {
+        if (!tokenClient) {
+          if (triesLeft <= 0) { cb(new Error("초기화 실패")); return; }
+          setTimeout(function () { attempt(triesLeft - 1); }, 200);
+          return;
+        }
+        tokenClient.callback = function (resp) {
+          if (resp.error) { cb(new Error(resp.error)); return; }
+          accessToken = resp.access_token;
+          status.signedIn = true; status.error = null;
+          if (!status.email) fetchEmail();
+          cb(null);
+        };
+        // 이미 동의한 적이 있으면 프롬프트 없이 조용히 새 토큰을 받아온다(브라우저에 구글
+        // 로그인 세션이 남아 있을 때). 실패하면(세션 만료 등) 사용자가 직접 "로그인"을 눌러야 한다.
+        tokenClient.requestAccessToken({ prompt: "" });
+      }
+      attempt(25);
+    }
+
+    function findOrCreateSheet(cb) {
+      var cached = localStorage.getItem(LS_SHEET_ID);
+      if (cached) { cb(null, cached); return; }
+      fetch("https://www.googleapis.com/drive/v3/files?q=" + encodeURIComponent("name='" + SHEET_TITLE + "' and trashed=false") + "&fields=" + encodeURIComponent("files(id,name)"), { headers: authHeaders() })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j.files && j.files.length) {
+            localStorage.setItem(LS_SHEET_ID, j.files[0].id);
+            cb(null, j.files[0].id);
+            return;
+          }
+          createSheet(cb);
+        })
+        .catch(function (e) { cb(e); });
+    }
+    function createSheet(cb) {
+      var sheets = RECORD_KEYS.map(function (k) { return { properties: { title: SHEET_TABS[k] } }; });
+      sheets.push({ properties: { title: META_TAB } });
+      fetch("https://sheets.googleapis.com/v4/spreadsheets", {
+        method: "POST", headers: jsonHeaders(),
+        body: JSON.stringify({ properties: { title: SHEET_TITLE }, sheets: sheets })
+      }).then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.spreadsheetId) { cb(new Error("스프레드시트 생성 실패")); return; }
+          localStorage.setItem(LS_SHEET_ID, j.spreadsheetId);
+          cb(null, j.spreadsheetId);
+        }).catch(function (e) { cb(e); });
+    }
+
+    /* 레코드 배열 <-> 시트 값(2차원 배열) 변환. 필드마다 타입이 다양해서(숫자·불리언·배열·null 등)
+       모든 셀 값을 JSON으로 인코딩해 저장한다 - 시트에서 직접 열어봐도 각 항목이 자기 열에 그대로
+       보이고(예: amount_krw 열에 300000, contacted 열에 true), 문자열만 따옴표가 함께 보인다. */
+    function buildTabValues(records) {
+      var keys = [];
+      records.forEach(function (r) {
+        Object.keys(r).forEach(function (k) { if (keys.indexOf(k) === -1) keys.push(k); });
+      });
+      var idIdx = keys.indexOf("id");
+      if (idIdx > 0) { keys.splice(idIdx, 1); keys.unshift("id"); }
+      var rows = [keys];
+      records.forEach(function (r) {
+        rows.push(keys.map(function (k) {
+          try { return JSON.stringify(k in r ? r[k] : null); } catch (e) { return "null"; }
+        }));
+      });
+      return rows;
+    }
+    function parseTabValues(rows) {
+      if (!rows || rows.length < 1) return [];
+      var keys = rows[0];
+      return rows.slice(1).filter(function (row) { return row && row.length; }).map(function (row) {
+        var obj = {};
+        keys.forEach(function (k, i) {
+          var cell = row[i];
+          if (cell === undefined || cell === "") { obj[k] = null; return; }
+          try { obj[k] = JSON.parse(cell); } catch (e) { obj[k] = cell; }
+        });
+        return obj;
+      });
+    }
+    function pickRecordArrays(remote) {
+      var out = {};
+      RECORD_KEYS.forEach(function (k) { out[k] = remote[k] || []; });
+      return out;
+    }
+
+    function push(spreadsheetId, dbData, cb) {
+      var clearRanges = RECORD_KEYS.map(function (k) { return SHEET_TABS[k] + "!A1:ZZ200000"; });
+      clearRanges.push(META_TAB + "!A1:B10");
+      var updateData = RECORD_KEYS.map(function (k) {
+        return { range: SHEET_TABS[k] + "!A1", values: buildTabValues(dbData[k] || []) };
+      });
+      var nowIso = (dbData._sync && dbData._sync.updatedAt) || new Date().toISOString();
+      updateData.push({ range: META_TAB + "!A1", values: [["key", "value"], ["updatedAt", nowIso]] });
+      fetch(sheetsBase(spreadsheetId) + "/values:batchClear", {
+        method: "POST", headers: jsonHeaders(), body: JSON.stringify({ ranges: clearRanges })
+      }).then(function (r) { if (!r.ok) throw new Error("clear 실패 " + r.status); return r; })
+        .then(function () {
+          return fetch(sheetsBase(spreadsheetId) + "/values:batchUpdate", {
+            method: "POST", headers: jsonHeaders(),
+            body: JSON.stringify({ valueInputOption: "RAW", data: updateData })
+          });
+        })
+        .then(function (r) { if (!r.ok) throw new Error("업로드 실패 " + r.status); return r.json(); })
+        .then(function () {
+          localStorage.setItem(LS_LAST_REMOTE, nowIso);
+          cb(null, nowIso);
+        }).catch(function (e) { cb(e); });
+    }
+    function pull(spreadsheetId, cb) {
+      var ranges = RECORD_KEYS.map(function (k) { return SHEET_TABS[k] + "!A1:ZZ200000"; });
+      ranges.push(META_TAB + "!A1:B10");
+      var url = sheetsBase(spreadsheetId) + "/values:batchGet?" + ranges.map(function (r) { return "ranges=" + encodeURIComponent(r); }).join("&");
+      fetch(url, { headers: authHeaders() }).then(function (r) { if (!r.ok) throw new Error("불러오기 실패 " + r.status); return r.json(); })
+        .then(function (j) {
+          var result = {};
+          (j.valueRanges || []).forEach(function (vr, i) {
+            if (i < RECORD_KEYS.length) { result[RECORD_KEYS[i]] = parseTabValues(vr.values || []); }
+            else {
+              var updatedAt = null;
+              (vr.values || []).forEach(function (row) { if (row[0] === "updatedAt") updatedAt = row[1]; });
+              result._metaUpdatedAt = updatedAt;
+            }
+          });
+          cb(null, result);
+        }).catch(function (e) { cb(e); });
+    }
+
+    function syncNow(opts, cb) {
+      if (typeof opts === "function") { cb = opts; opts = {}; }
+      opts = opts || {};
+      if (typeof navigator !== "undefined" && navigator.onLine === false) { cb && cb(new Error("오프라인")); return; }
+      if (!getClientId()) { cb && cb(new Error("설정 필요")); return; }
+      status.syncing = true; emit();
+      ensureToken(function (tokenErr) {
+        if (tokenErr) {
+          status.syncing = false; status.signedIn = false;
+          status.error = opts.silent ? status.error : "로그인이 필요해요.";
+          emit(); cb && cb(tokenErr); return;
+        }
+        findOrCreateSheet(function (sheetErr, sheetId) {
+          if (sheetErr) { status.syncing = false; status.error = "스프레드시트를 찾지 못했어요."; emit(); cb && cb(sheetErr); return; }
+          pull(sheetId, function (pullErr, remote) {
+            if (pullErr) { status.syncing = false; status.error = "동기화에 실패했어요(" + pullErr.message + ")."; emit(); cb && cb(pullErr); return; }
+            var db = DB.get();
+            var localUpdatedAt = (db._sync && db._sync.updatedAt) || null;
+            var lastRemote = localStorage.getItem(LS_LAST_REMOTE) || null;
+            var remoteUpdatedAt = remote._metaUpdatedAt || null;
+            var localChanged = !!(localUpdatedAt && (!lastRemote || localUpdatedAt > lastRemote));
+            var remoteChanged = !!(remoteUpdatedAt && (!lastRemote || remoteUpdatedAt > lastRemote));
+
+            function doPush() {
+              push(sheetId, db, function (err) {
+                status.syncing = false;
+                if (err) { status.error = "업로드에 실패했어요."; emit(); cb && cb(err); return; }
+                status.lastSyncedAt = new Date().toISOString(); status.error = null; emit();
+                cb && cb(null, "pushed");
+              });
+            }
+            function doPull() {
+              var merged = normalizeData(Object.assign({}, db, pickRecordArrays(remote)));
+              merged.settings = db.settings; merged.targets = db.targets; // 기기별 설정은 유지
+              DB.replace(merged);
+              // 방금 pull한 내용이 곧 이 기기의 최신 상태이므로, save()가 방금 새로 찍은 로컬
+              // updatedAt을 "마지막으로 동기화된 시각"으로도 그대로 기록해 불필요한 재업로드를 막는다.
+              localStorage.setItem(LS_LAST_REMOTE, DB.get()._sync.updatedAt);
+              status.syncing = false; status.lastSyncedAt = new Date().toISOString(); status.error = null; emit();
+              cb && cb(null, "pulled");
+            }
+
+            if (localChanged && remoteChanged && localUpdatedAt !== remoteUpdatedAt) {
+              if (opts.silent) {
+                status.syncing = false; status.error = "다른 기기에도 새 기록이 있어요. \"지금 동기화\"를 눌러 확인해주세요.";
+                emit(); cb && cb(new Error("conflict")); return;
+              }
+              var useRemote = confirm(
+                "다른 기기에 새로 저장된 기록이 있고, 이 기기에도 아직 동기화하지 않은 새 기록이 있어요.\n\n" +
+                "확인 = 다른 기기 내용을 불러오기 (이 기기의 새 기록은 사라져요)\n" +
+                "취소 = 이 기기 내용으로 덮어쓰기 (다른 기기의 새 기록은 사라져요)"
+              );
+              if (useRemote) doPull(); else doPush();
+            } else if (remoteChanged) {
+              doPull();
+            } else if (localChanged || !remoteUpdatedAt) {
+              doPush();
+            } else {
+              status.syncing = false; status.lastSyncedAt = new Date().toISOString(); status.error = null; emit();
+              cb && cb(null, "already-in-sync");
+            }
+          });
+        });
+      });
+    }
+
+    function notifyLocalChange() {
+      if (!status.configured || !status.signedIn) return;
+      clearTimeout(pushDebounceTimer);
+      pushDebounceTimer = setTimeout(function () { syncNow({ silent: true }); }, 4000);
+    }
+    function autoSyncOnLoad() {
+      if (!getClientId()) return;
+      loadGis();
+      setTimeout(function () { syncNow({ silent: true }); }, 700);
+    }
+    if (typeof window !== "undefined") {
+      window.addEventListener("online", function () { syncNow({ silent: true }); });
+    }
+
+    return {
+      on: on, getStatus: getStatus, getClientId: getClientId, setClientId: setClientId,
+      signIn: signIn, signOut: signOut, syncNow: syncNow,
+      notifyLocalChange: notifyLocalChange, autoSyncOnLoad: autoSyncOnLoad,
+      buildTabValues: buildTabValues, parseTabValues: parseTabValues
+    };
+  })();
+  if (typeof window !== "undefined") window.Sync = Sync;
+
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  /* ============================== 날짜 유틸 ============================== */
+  function pad2(n) { return n < 10 ? "0" + n : "" + n; }
+  function fmtISO(d) { return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
+  function todayISO() { return fmtISO(new Date()); }
+  function toYearMonth(d) { return d.getFullYear() + "-" + pad2(d.getMonth() + 1); }
+  function parseISODate(s) { var p = s.split("-").map(Number); return new Date(p[0], p[1] - 1, p[2] || 1); }
+  function daysInMonth(y, m0) { return new Date(y, m0 + 1, 0).getDate(); }
+  function addMonthsSafe(date, delta) {
+    var day = date.getDate();
+    var anchor = new Date(date.getFullYear(), date.getMonth() + delta, 1);
+    anchor.setDate(Math.min(day, daysInMonth(anchor.getFullYear(), anchor.getMonth())));
+    return anchor;
+  }
+  function subMonths(d, n) { return addMonthsSafe(d, -n); }
+  function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+  function endOfMonth(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
+  function diffCalendarDays(a, b) {
+    var A = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+    var B = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+    return Math.round((A - B) / 86400000);
+  }
+  function isBeforeDay(a, b) { return a.getTime() < b.getTime(); }
+
+  /** 전월 "동일 기간" 범위 — 전월이 이번 달보다 짧으면 전월 마지막 날로 캡핑한다. */
+  function sameRangeInPreviousMonth(rangeStart, rangeEnd) {
+    var prevAnchor = subMonths(rangeStart, 1);
+    var prevStart = startOfMonth(prevAnchor);
+    var dayOffset = diffCalendarDays(rangeEnd, startOfMonth(rangeStart));
+    var candidateEnd = new Date(prevStart);
+    candidateEnd.setDate(prevStart.getDate() + dayOffset);
+    var prevMonthEnd = endOfMonth(prevAnchor);
+    var prevEnd = isBeforeDay(prevMonthEnd, candidateEnd) ? prevMonthEnd : candidateEnd;
+    return { start: prevStart, end: prevEnd };
+  }
+  function fullMonthRange(anchor) { return { start: startOfMonth(anchor), end: endOfMonth(anchor) }; }
+  function isMonthComplete(anchor, today) {
+    var eom = endOfMonth(anchor);
+    return isBeforeDay(eom, today) || diffCalendarDays(eom, today) === 0;
+  }
+  /** 이번 달이 진행 중이면 "동일 기간" 비교로 강제, 끝난 두 달이면 전체 월 비교. */
+  function resolveComparisonRanges(currentAnchor, previousAnchor, today) {
+    if (!isMonthComplete(currentAnchor, today)) {
+      var currentRange = { start: startOfMonth(currentAnchor), end: today };
+      var previousRange = sameRangeInPreviousMonth(currentRange.start, currentRange.end);
+      return { mode: "same-period", current: currentRange, previous: previousRange };
+    }
+    return { mode: "full-month", current: fullMonthRange(currentAnchor), previous: fullMonthRange(previousAnchor) };
+  }
+  /** {start,end}(둘 다 포함)를 [start, end) 문자열 범위로 변환 */
+  function toQueryRange(range) {
+    var exclusiveEnd = new Date(range.end.getFullYear(), range.end.getMonth(), range.end.getDate() + 1);
+    return { start: fmtISO(range.start), end: fmtISO(exclusiveEnd) };
+  }
+  function inRangeStr(dateStr, range) { return dateStr >= range.start && dateStr < range.end; }
+  function rangeDayCount(range) {
+    return Math.max(1, diffCalendarDays(parseISODate(range.end), parseISODate(range.start)));
+  }
+
+  /* ============================== 점수 엔진 ============================== */
+  function capRate(pct) { return Math.max(0, Math.min(100, pct)); }
+  function satisfactionToScore(s1to10) {
+    if (s1to10 == null) return null;
+    return Math.max(0, Math.min(100, ((s1to10 - 1) / 9) * 100));
+  }
+  function computeCategoryScore(objectivePct, satisfaction1to10, weight) {
+    var objectiveScore = objectivePct == null ? 0 : capRate(objectivePct);
+    var satisfactionScore = satisfactionToScore(satisfaction1to10);
+    if (satisfactionScore == null) satisfactionScore = 0;
+    var finalScore = objectiveScore * weight.objective + satisfactionScore * weight.satisfaction;
+    return {
+      objectiveScore: Math.round(objectiveScore * 10) / 10,
+      satisfactionScore: Math.round(satisfactionScore * 10) / 10,
+      finalScore: Math.round(Math.max(0, Math.min(100, finalScore)) * 10) / 10,
+      isDataInsufficient: (objectivePct == null && weight.objective > 0) || (satisfaction1to10 == null && weight.satisfaction > 0)
+    };
+  }
+  function populationStdDev(values) {
+    if (values.length === 0) return 0;
+    var mean = values.reduce(function (a, b) { return a + b; }, 0) / values.length;
+    var variance = values.reduce(function (sum, v) { return sum + Math.pow(v - mean, 2); }, 0) / values.length;
+    return Math.sqrt(variance);
+  }
+  function computeHarmonyIndex(scores) {
+    var sd = populationStdDev(scores);
+    var raw = 100 - (sd / 50) * 100;
+    return Math.max(0, Math.min(100, Math.round(raw * 10) / 10));
+  }
+  function computeLifeScore(scores) {
+    if (scores.length === 0) return 0;
+    var avg = scores.reduce(function (a, b) { return a + b; }, 0) / scores.length;
+    return Math.round(avg * 10) / 10;
+  }
+  function computeRecordRate(recorded, applicable) {
+    if (applicable <= 0) return null;
+    var rate = (recorded / applicable) * 100;
+    return Math.max(0, Math.min(100, Math.round(rate * 10) / 10));
+  }
+  var DEFAULT_ON_TIME = { hours: 18, minutes: 20 };
+  function parseTimeStr(v) {
+    var p = v.split(":").map(Number);
+    return { hours: p[0], minutes: p[1] };
+  }
+  function evaluateLeaveTime(actual, threshold) {
+    threshold = threshold || DEFAULT_ON_TIME;
+    var a = actual.hours * 60 + actual.minutes;
+    var t = threshold.hours * 60 + threshold.minutes;
+    if (a <= t) return { isOnTime: true, delayMinutes: 0 };
+    return { isOnTime: false, delayMinutes: a - t };
+  }
+  function isProjectStale(lastUpdatedIso, todayDate, thresholdDays) {
+    thresholdDays = thresholdDays == null ? 14 : thresholdDays;
+    var diffDays = (todayDate.getTime() - parseISODate(lastUpdatedIso).getTime()) / 86400000;
+    return diffDays >= thresholdDays;
+  }
+  function progressDeltaInRange(logs, rangeStart, rangeEnd) {
+    return logs.filter(function (l) {
+      var d = parseISODate(l.logged_date).getTime();
+      return d >= rangeStart.getTime() && d <= rangeEnd.getTime();
+    }).reduce(function (sum, l) { return sum + (l.progress_after - l.progress_before); }, 0);
+  }
+  var MIN_DAYS_FOR_TREND = 30;
+
+  function getThreshold() {
+    try { return parseTimeStr(DB.get().settings.onTimeThreshold || "18:20"); }
+    catch (e) { return DEFAULT_ON_TIME; }
+  }
+
+  /* ============================== 대시보드 계산 ============================== */
+  function onTimeThresholdObj() { return getThreshold(); }
+
+  /**
+   * 회사 점수 = 퇴근 점수(정시 비율) 50% + 식사/회식 빈도 점수 50%.
+   * - 퇴근 점수: 기존과 동일 (정시 비율 70% + 기록 여부 30%, 정시 기준은 설정의 onTimeThreshold, 기본 18:20).
+   * - 식사 점수: 점심/저녁/회식 횟수(커피 제외) 합산이 월 목표(기본 5회) 도달 시 만점, 이하는 비례,
+   *   초과하면 균형이 무너진다고 보고 감점(초과 1회당 목표 5회 기준 10점씩, 조회 기간에 비례해서 스케일).
+   * - 둘 중 하나만 기록이 있으면 그 값만 사용, 둘 다 없으면 데이터 부족(null).
+   */
+  function computeCompanySnapshot(range) {
+    var db = DB.get();
+    var leaves = db.leaveRecords.filter(function (l) { return inRangeStr(l.work_date, range) && !l.excluded && l.actual_time; });
+    var onTimeCount = leaves.filter(function (l) { return evaluateLeaveTime(parseTimeStr(l.actual_time), onTimeThresholdObj()).isOnTime; }).length;
+    var onTimeRate = leaves.length > 0 ? (onTimeCount / leaves.length) * 100 : null;
+    var goalPct = leaves.length > 0 ? 100 : 0;
+    var leaveScore = onTimeRate == null ? null : onTimeRate * 0.7 + goalPct * 0.3;
+
+    var mealActs = db.companyActivities.filter(function (a) {
+      return inRangeStr(a.activity_date, range) && (a.subtype === "lunch" || a.subtype === "dinner" || a.subtype === "dinner_party");
+    });
+    var mealCount = mealActs.reduce(function (s, a) { return s + (a.count || 1); }, 0);
+    var mealScore = null;
+    if (db.companyActivities.length > 0) {
+      var rangeDays = rangeDayCount(range);
+      var monthlyTarget = (db.targets.companyMealMonthlyTarget > 0) ? db.targets.companyMealMonthlyTarget : 5;
+      var targetForRange = Math.max(0.0001, (monthlyTarget / 30) * rangeDays);
+      if (mealCount <= targetForRange) {
+        mealScore = (mealCount / targetForRange) * 100;
+      } else {
+        var excess = mealCount - targetForRange;
+        var deductionRate = (100 / targetForRange) / 2;
+        mealScore = 100 - excess * deductionRate;
+      }
+      mealScore = Math.max(0, Math.min(100, mealScore));
+    }
+
+    var objective;
+    if (leaveScore == null && mealScore == null) objective = null;
+    else if (leaveScore == null) objective = mealScore;
+    else if (mealScore == null) objective = leaveScore;
+    else objective = leaveScore * 0.5 + mealScore * 0.5;
+
+    return {
+      key: "company", objectiveAchievementPct: objective,
+      satisfaction1to10: monthlySatisfactionFor(range, "company"),
+      recordedUnits: leaves.length + mealActs.length, applicableUnits: leaves.length + mealActs.length
+    };
+  }
+  /** 출근시간은 오전 8시 30분으로 고정하고, 퇴근 기록에서 이 시각까지의 근무시간을 역산한다. */
+  var WORK_START = { hours: 8, minutes: 30 };
+  /** 이번 달 회사 관련 누적 사용 비용(식사/커피/회식 전체) + 점수에 반영되는 식사 횟수 + 근무시간 합계 */
+  function companySpendSnapshot(anchorDateStr) {
+    var db = DB.get();
+    var anchor = parseISODate(anchorDateStr);
+    var range = toQueryRange(fullMonthRange(anchor));
+    var acts = db.companyActivities.filter(function (a) { return inRangeStr(a.activity_date, range); });
+    var total = acts.reduce(function (s, a) { return s + (a.amount_krw || 0); }, 0);
+    var mealCount = acts.filter(function (a) { return a.subtype === "lunch" || a.subtype === "dinner" || a.subtype === "dinner_party"; })
+      .reduce(function (s, a) { return s + (a.count || 1); }, 0);
+    var leaves = db.leaveRecords.filter(function (l) { return inRangeStr(l.work_date, range) && !l.excluded && l.actual_time; });
+    var startMinutes = WORK_START.hours * 60 + WORK_START.minutes;
+    var totalWorkMinutes = leaves.reduce(function (s, l) {
+      var t = parseTimeStr(l.actual_time);
+      var mins = t.hours * 60 + t.minutes;
+      return s + Math.max(0, mins - startMinutes);
+    }, 0);
+    var totalWorkHours = Math.round((totalWorkMinutes / 60) * 10) / 10;
+    return { total: total, mealCount: mealCount, totalWorkHours: totalWorkHours, monthLabel: (anchor.getMonth() + 1) + "월" };
+  }
+  /** 이번 달 운동 누적 횟수 (종류 상관없이 완료 체크한 횟수 합, 점수 계산과 동일한 기준) */
+  function exerciseMonthlySnapshot(anchorDateStr) {
+    var db = DB.get();
+    var anchor = parseISODate(anchorDateStr);
+    var range = toQueryRange(fullMonthRange(anchor));
+    var rows = db.exerciseRecords.filter(function (r) { return inRangeStr(r.activity_date, range) && r.completed; });
+    return { count: rows.length, monthLabel: (anchor.getMonth() + 1) + "월" };
+  }
+  /**
+   * 홈 화면 하단 캘린더용: anchorDateStr이 속한 달에서, 영역 상관없이 하루라도 어떤 기록이든
+   * 있었던 날짜(YYYY-MM-DD)를 key로 갖는 맵을 반환한다. 진행률 로그(사이드 프로젝트)는
+   * 프로젝트 자체가 아니라 "그날 기록을 남겼는지"가 기준이라 projectProgressLogs를 본다.
+   */
+  function activityDatesInMonth(anchorDateStr) {
+    var db = DB.get();
+    var anchor = parseISODate(anchorDateStr);
+    var range = toQueryRange(fullMonthRange(anchor));
+    var dates = {};
+    function mark(arr, field) {
+      arr.forEach(function (r) { if (inRangeStr(r[field], range)) dates[r[field]] = true; });
+    }
+    mark(db.companyActivities, "activity_date");
+    mark(db.leaveRecords, "work_date");
+    mark(db.exerciseRecords, "activity_date");
+    mark(db.familyRecords, "activity_date");
+    mark(db.projectProgressLogs, "logged_date");
+    mark(db.extraIncomes, "occurred_date");
+    mark(db.selfTimeRecords, "start_date");
+    mark(db.thoughtRecords, "date");
+    mark(db.investmentRecords, "date");
+    return dates;
+  }
+  /** activityDatesInMonth와 같은 기준이지만 달 제한 없이 전체 기록 기간의 날짜를 모은다(스트릭 계산용). */
+  function allActivityDates() {
+    var db = DB.get();
+    var dates = {};
+    function mark(arr, field) {
+      arr.forEach(function (r) { if (r[field]) dates[r[field]] = true; });
+    }
+    mark(db.companyActivities, "activity_date");
+    mark(db.leaveRecords, "work_date");
+    mark(db.exerciseRecords, "activity_date");
+    mark(db.familyRecords, "activity_date");
+    mark(db.projectProgressLogs, "logged_date");
+    mark(db.extraIncomes, "occurred_date");
+    mark(db.selfTimeRecords, "start_date");
+    mark(db.thoughtRecords, "date");
+    mark(db.investmentRecords, "date");
+    return dates;
+  }
+  /**
+   * 영역 상관없이 지금까지 기록이 단 하나라도 있는지. 완전히 처음 켠 상태(전부 0점)인지
+   * 판단하는 데 쓴다 — 이땐 라이프 점수·조화지수 같은 숫자를 그대로 보여주는 대신
+   * 환영 화면으로 안내하는 게 훨씬 덜 혼란스럽다.
+   */
+  function hasAnyRecords() {
+    var db = DB.get();
+    return !!(db.companyActivities.length || db.leaveRecords.length || db.exerciseRecords.length ||
+      db.familyRecords.length || db.projectProgressLogs.length || db.extraIncomes.length ||
+      db.selfTimeRecords.length || db.thoughtRecords.length || db.investmentRecords.length);
+  }
+  /**
+   * 오늘 기준 연속 기록일수(스트릭). 오늘 아직 기록을 안 남겼어도 어제까지 이어져 있었다면
+   * 아직 끊긴 게 아니므로(오늘 하루가 아직 안 끝났으므로) 어제부터 거슬러 올라가며 센다.
+   * 오늘도 어제도 기록이 없으면 스트릭은 0.
+   */
+  function computeStreak() {
+    var dates = allActivityDates();
+    var cursor = new Date();
+    var cursorStr = fmtISO(cursor);
+    var includesToday = !!dates[cursorStr];
+    if (!includesToday) {
+      cursor.setDate(cursor.getDate() - 1);
+      cursorStr = fmtISO(cursor);
+      if (!dates[cursorStr]) return { count: 0, includesToday: false };
+    }
+    var count = 0;
+    while (dates[cursorStr]) {
+      count++;
+      cursor.setDate(cursor.getDate() - 1);
+      cursorStr = fmtISO(cursor);
+    }
+    return { count: count, includesToday: includesToday };
+  }
+  /**
+   * 운동 목표 달성률 = 주당 운동 횟수 기준. "일주일에 N번 이상이면 만점" 규칙.
+   * 조회 범위(일수)에 비례해 목표 횟수를 환산한다 (예: 4회/주 목표, 30일 범위 → 30/7*4 ≈ 17.1회가 만점 기준).
+   */
+  function computeExerciseSnapshot(range) {
+    var db = DB.get();
+    var rows = db.exerciseRecords.filter(function (r) { return inRangeStr(r.activity_date, range) && r.completed; });
+    var rangeDays = rangeDayCount(range);
+    var weeklyTarget = (db.targets.exerciseWeeklyTarget > 0) ? db.targets.exerciseWeeklyTarget : 4;
+    var targetForRange = (weeklyTarget / 7) * rangeDays;
+    var objective = rows.length > 0 ? Math.min(100, (rows.length / targetForRange) * 100) : null;
+    var daysWithExercise = {};
+    rows.forEach(function (r) { daysWithExercise[r.activity_date] = true; });
+    return {
+      key: "exercise", objectiveAchievementPct: objective,
+      satisfaction1to10: monthlySatisfactionFor(range, "exercise"),
+      recordedUnits: Object.keys(daysWithExercise).length, applicableUnits: rangeDayCount(range)
+    };
+  }
+  /** count/target을 0~100%로 변환. target이 0이거나 비어있으면(설정 실수 등) 0으로 나누기 대신 0%로 처리한다. */
+  function safeRatePct(count, target) {
+    if (!(target > 0)) return 0;
+    return Math.min(100, (count / target) * 100);
+  }
+  function computeFamilySnapshot(range) {
+    var db = DB.get();
+    var t = db.targets;
+    var records = db.familyRecords.filter(function (r) { return inRangeStr(r.activity_date, range); });
+    var parents = records.filter(function (r) { return r.family_type === "parents"; });
+    var star = records.filter(function (r) { return r.family_type === "star"; });
+    var contactRate = (
+      safeRatePct(parents.filter(function (r) { return r.contacted; }).length, t.familyParentsContactPerMonth) +
+      safeRatePct(star.filter(function (r) { return r.contacted; }).length, t.familyStarContactPerMonth)
+    ) / 2;
+    var parentsMinutes = parents.reduce(function (s, r) { return s + (r.minutes_spent || 0); }, 0);
+    var starMinutes = star.reduce(function (s, r) { return s + (r.minutes_spent || 0); }, 0);
+    var timeRate = (
+      safeRatePct(parentsMinutes, t.familyParentsMinutesPerMonth) +
+      safeRatePct(starMinutes, t.familyStarMinutesPerMonth)
+    ) / 2;
+    var objective = records.length > 0 ? contactRate * 0.5 + timeRate * 0.5 : null;
+    return {
+      key: "family", objectiveAchievementPct: objective,
+      satisfaction1to10: monthlySatisfactionFor(range, "family"),
+      recordedUnits: records.length, applicableUnits: records.length
+    };
+  }
+  /**
+   * 사이드 프로젝트 점수 = "동시에 진행 중인 프로젝트 개수" 기준(균등 배분).
+   * 예: 목표 5개 → 5개 이상 진행 중이면 100점, 1개면 20점, 0개면 0점(데이터 부족).
+   * "중단"으로 표시하지 않는 한 계속 진행 중으로 카운트한다(자동 정체 판정 없음).
+   */
+  function computeSideProjectSnapshot(range) {
+    var db = DB.get();
+    var t = db.targets;
+    var activeProjects = db.sideProjects.filter(function (p) { return p.status !== "stopped"; });
+    var target = (t.sideProjectActiveTarget > 0) ? t.sideProjectActiveTarget : 5;
+    var objective = db.sideProjects.length > 0 ? Math.min(100, (activeProjects.length / target) * 100) : null;
+    var recordedUnits = db.projectProgressLogs.filter(function (l) { return inRangeStr(l.logged_date, range); }).length;
+    return {
+      key: "side_project", objectiveAchievementPct: objective,
+      satisfaction1to10: monthlySatisfactionFor(range, "side_project"),
+      recordedUnits: activeProjects.length, applicableUnits: target
+    };
+  }
+  /**
+   * "올해 1월 1일부터 asOfDateStr까지 입력한 총 추가소득 ÷ 경과 월수(=asOfDateStr의 달, 1~12)"
+   * 를 "월평균 추가소득"으로 보고, 이 값을 목표(월 300만원 등)와 비교한다.
+   * 예: 8/30 기준 누적 1000만원 → 1000만원 ÷ 8(월) = 월평균 125만원.
+   */
+  function incomeCumulativeAsOf(asOfDateStr) {
+    var db = DB.get();
+    var asOf = parseISODate(asOfDateStr);
+    var year = asOf.getFullYear();
+    var monthNum = asOf.getMonth() + 1;
+    var yearStart = year + "-01-01";
+    var incomesYtd = db.extraIncomes.filter(function (i) { return i.occurred_date >= yearStart && i.occurred_date <= asOfDateStr; });
+    var cumulativeTotal = incomesYtd.reduce(function (s, i) { return s + (i.amount_krw || 0); }, 0);
+    var avgMonthly = cumulativeTotal / monthNum;
+    return { year: year, monthNum: monthNum, cumulativeTotal: cumulativeTotal, avgMonthly: avgMonthly, count: incomesYtd.length };
+  }
+
+  function computeIncomeSnapshot(range) {
+    var db = DB.get();
+    var incomes = db.extraIncomes.filter(function (i) { return inRangeStr(i.occurred_date, range); });
+    var rangeEndInclusive = fmtISO(new Date(parseISODate(range.end).getTime() - 86400000));
+    var cum = incomeCumulativeAsOf(rangeEndInclusive);
+    var target = db.targets.incomeMonthlyTargetKrw;
+    var objective = cum.count > 0 && target > 0 ? Math.min(100, (cum.avgMonthly / target) * 100) : null;
+    return {
+      key: "extra_income", objectiveAchievementPct: objective,
+      satisfaction1to10: monthlySatisfactionFor(range, "extra_income"),
+      recordedUnits: incomes.length, applicableUnits: incomes.length
+    };
+  }
+  /**
+   * 나를 위한 시간 점수 = 이번 범위에서 입력한 시간 합계 / 월 목표 시간(기본 40시간).
+   * 조회 범위가 한 달 전체가 아니면(예: 이번 달 진행 중) 목표도 일수 비율만큼 환산한다.
+   * 옛날 기록처럼 시간이 입력 안 된 경우는 1시간으로 간주한다.
+   */
+  function computeSelfTimeSnapshot(range) {
+    var db = DB.get();
+    var records = db.selfTimeRecords.filter(function (r) { return inRangeStr(r.start_date, range); });
+    var totalHours = records.reduce(function (s, r) { return s + (r.duration_hours != null ? r.duration_hours : 1); }, 0);
+    var rangeDays = rangeDayCount(range);
+    var monthlyTarget = (db.targets.selfTimeMonthlyHoursTarget > 0) ? db.targets.selfTimeMonthlyHoursTarget : 40;
+    var targetForRange = Math.max(0.0001, (monthlyTarget / 30) * rangeDays);
+    var objective = records.length > 0 ? Math.min(100, (totalHours / targetForRange) * 100) : null;
+    return {
+      key: "self_time", objectiveAchievementPct: objective,
+      satisfaction1to10: monthlySatisfactionFor(range, "self_time"),
+      recordedUnits: records.length, applicableUnits: records.length
+    };
+  }
+  /** 이번 달 "나를 위한 시간" 누적 시간 + 누적 비용 */
+  function selfTimeMonthlySnapshot(anchorDateStr) {
+    var db = DB.get();
+    var anchor = parseISODate(anchorDateStr);
+    var range = toQueryRange(fullMonthRange(anchor));
+    var records = db.selfTimeRecords.filter(function (r) { return inRangeStr(r.start_date, range); });
+    var totalHours = records.reduce(function (s, r) { return s + (r.duration_hours != null ? r.duration_hours : 1); }, 0);
+    var totalAmount = records.reduce(function (s, r) { return s + (r.amount_krw || 0); }, 0);
+    return { totalHours: totalHours, totalAmount: totalAmount, monthLabel: (anchor.getMonth() + 1) + "월" };
+  }
+  function monthlySatisfactionFor(range, key) {
+    var db = DB.get();
+    var ym = toYearMonth(parseISODate(range.start));
+    var entry = db.monthlySatisfaction[ym];
+    return entry && entry[key] != null ? entry[key] : null;
+  }
+
+  var SNAPSHOT_BUILDERS = {
+    company: computeCompanySnapshot, exercise: computeExerciseSnapshot, family: computeFamilySnapshot,
+    side_project: computeSideProjectSnapshot, extra_income: computeIncomeSnapshot, self_time: computeSelfTimeSnapshot
+  };
+
+  function computeDashboard(range) {
+    var db = DB.get();
+    var weights = DEFAULT_WEIGHTS;
+    var categories = CATEGORY_KEYS.map(function (key) {
+      var snap = SNAPSHOT_BUILDERS[key](range);
+      var score = computeCategoryScore(snap.objectiveAchievementPct, snap.satisfaction1to10, weights[key]);
+      return Object.assign({}, snap, score);
+    });
+    var lifeScore = computeLifeScore(categories.map(function (c) { return c.finalScore; }));
+    var harmonyIndex = computeHarmonyIndex(categories.map(function (c) { return c.finalScore; }));
+    var totalRecorded = categories.reduce(function (s, c) { return s + c.recordedUnits; }, 0);
+    var totalApplicable = categories.reduce(function (s, c) { return s + c.applicableUnits; }, 0);
+    var recordRate = computeRecordRate(totalRecorded, totalApplicable);
+    return { categories: categories, lifeScore: lifeScore, harmonyIndex: harmonyIndex, recordRate: recordRate };
+  }
+
+  function generateInsights(current, previous, daysOfDataAvailable) {
+    var insights = [];
+    var enoughData = daysOfDataAvailable >= MIN_DAYS_FOR_TREND;
+    var deltas = current.categories.map(function (c) {
+      var prev = previous.categories.filter(function (p) { return p.key === c.key; })[0];
+      return { key: c.key, label: CATEGORY_LABELS[c.key], delta: prev ? c.finalScore - prev.finalScore : null };
+    }).filter(function (d) { return d.delta != null; });
+
+    if (deltas.length > 0) {
+      var biggestGain = deltas.reduce(function (a, b) { return b.delta > a.delta ? b : a; });
+      if (biggestGain.delta > 0) {
+        insights.push({ tone: "positive", message: biggestGain.label + " 점수가 이전 대비 " + biggestGain.delta.toFixed(1) + "점 상승했습니다." });
+      }
+      var biggestDrop = deltas.reduce(function (a, b) { return b.delta < a.delta ? b : a; });
+      if (biggestDrop.delta < 0) {
+        insights.push({ tone: "negative", message: biggestDrop.label + " 점수가 이전 대비 " + Math.abs(biggestDrop.delta).toFixed(1) + "점 하락했습니다." });
+      }
+    }
+    var lowest = current.categories.slice().sort(function (a, b) { return a.finalScore - b.finalScore; })[0];
+    if (lowest) {
+      insights.push({ tone: "neutral", message: "다음엔 \"" + CATEGORY_LABELS[lowest.key] + "\" 영역(현재 " + lowest.finalScore.toFixed(1) + "점)에 집중해보는 걸 추천해요." });
+    }
+    if (!enoughData) {
+      insights = insights.slice(0, 2);
+      insights.push({ tone: "neutral", message: "아직 30일 이상의 기록이 쌓이지 않아, 추세는 참고용으로만 확인해주세요." });
+      return insights;
+    }
+    return insights.slice(0, 3);
+  }
+
+  /* ============================== 공용 UI 헬퍼 ============================== */
+  var toastTimer = null;
+  function showToast(msg, isError) {
+    var el = document.getElementById("toast");
+    el.textContent = msg;
+    el.classList.toggle("toast-error", !!isError);
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove("show"); }, isError ? 3200 : 1800);
+  }
+
+  /**
+   * DB.save()를 호출하고, 결과를 안내한다.
+   * - successMsg가 있는 호출(=버튼 클릭 등 사용자가 직접 "저장"을 누른 명시적 동작)은 성공하면
+   *   검은색 토스트, 실패하면 빨간색 오류 토스트("저장에 실패했어요...")로 항상 결과를 안내한다 -
+   *   저장 버튼을 눌렀는데 아무 반응이 없어 보인다는 피드백에 따라 추가했다.
+   * - successMsg가 없는 호출(테마 전환처럼 화면에 이미 결과가 보이는 사소한 배경 저장, 피드백
+   *   생성 중간 저장 등)은 예전처럼 조용히 넘어간다 - 저장이 막힌 환경에서 매 상호작용마다
+   *   오류 토스트가 반복해서 뜨는 건 오히려 불편하다는 이전 피드백을 그대로 존중한다.
+   * DB.save()의 실제 성공 여부는 그대로 반환하므로, 화면에 이미 있던 인라인 상태 문구
+   * (예: 회사 기록 화면의 "저장했어요!"/실패 안내)도 계속 정확하게 동작한다. 실패 시 콘솔에는
+   * 여전히 "저장 실패" 에러가 남는다(DB.save() 내부에서 console.error 처리).
+   */
+  function saveOrToast(successMsg) {
+    var ok = DB.save();
+    if (ok) Sync.notifyLocalChange();
+    if (successMsg) {
+      if (ok) showToast(successMsg);
+      else showToast("저장에 실패했어요. 다시 시도해주세요.", true);
+    }
+    return ok;
+  }
+
+  function el(html) {
+    var t = document.createElement("template");
+    t.innerHTML = html.trim();
+    return t.content.firstElementChild;
+  }
+  function fmtNum(n) { return Math.round(n * 10) / 10; }
+  function fmtWon(n) { return (n || 0).toLocaleString("ko-KR") + "원"; }
+  /**
+   * 금액(원) 입력란은 숫자 입력창(type="number")이라 편집 중엔 "3000000"처럼 콤마 없이 보여서
+   * 읽기 어렵다. input 자체를 바꾸는 대신(모바일 숫자 키패드·기존 파싱 로직을 그대로 유지하기 위해)
+   * 바로 아래에 "3,000,000원" 같은 실시간 미리보기를 붙여서 읽기 쉽게 돕는다.
+   */
+  function wireMoneyHints(scopeEl) {
+    scopeEl.querySelectorAll("input[data-money]").forEach(function (inp) {
+      var hint = inp.parentElement ? inp.parentElement.querySelector(".amount-hint") : null;
+      if (!hint) return;
+      function update() {
+        var n = Number(inp.value);
+        hint.textContent = (inp.value !== "" && isFinite(n)) ? fmtWon(n) : "";
+      }
+      inp.addEventListener("input", update);
+      update();
+    });
+  }
+  var WEEKDAY_KO = ["일", "월", "화", "수", "목", "금", "토"];
+  function fmtDateKo(iso) {
+    var d = parseISODate(iso);
+    return d.getFullYear() + "." + pad2(d.getMonth() + 1) + "." + pad2(d.getDate()) + " (" + WEEKDAY_KO[d.getDay()] + ")";
+  }
+  function fmtRelativeTime(iso) {
+    if (!iso) return "";
+    var diffMs = Date.now() - new Date(iso).getTime();
+    var mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return "방금 전";
+    if (mins < 60) return mins + "분 전";
+    var hours = Math.floor(mins / 60);
+    if (hours < 24) return hours + "시간 전";
+    return Math.floor(hours / 24) + "일 전";
+  }
+
+  /* ============================== 날씨 (서울 강남 기준) ==============================
+   * 이 앱의 다른 모든 기능은 완전히 오프라인으로 동작하지만, 날씨만큼은 실시간 데이터가
+   * 필요해서 이 부분만 예외적으로 인터넷 연결이 필요하다. API 키가 필요 없는 공개
+   * 무료 API(open-meteo.com)를 사용하고, 오프라인이거나 요청이 실패하면 날씨 표시를
+   * 조용히 숨기고 나머지 기능은 평소처럼 그대로 동작한다.
+   */
+  var GANGNAM_LAT = 37.4979, GANGNAM_LON = 127.0276; // 강남역 기준 좌표
+  var WeatherCache = { data: null, fetchedAt: 0, pending: false, waiters: [] };
+  function weatherIconFor(code) {
+    if (code === 0) return "☀️";
+    if (code === 1) return "🌤️";
+    if (code === 2) return "⛅";
+    if (code === 3) return "☁️";
+    if (code === 45 || code === 48) return "🌫️";
+    if ([51, 53, 55, 56, 57].indexOf(code) !== -1) return "🌦️";
+    if ([61, 63, 65, 66, 67, 80, 81, 82].indexOf(code) !== -1) return "🌧️";
+    if ([71, 73, 75, 77, 85, 86].indexOf(code) !== -1) return "🌨️";
+    if ([95, 96, 99].indexOf(code) !== -1) return "⛈️";
+    return "🌡️";
+  }
+  /**
+   * callback(data|null)을 정확히 한 번 호출하는 것을 보장한다. 캐시가 있으면 즉시,
+   * 없으면 네트워크 요청 후 호출하고, 이미 다른 곳(예: 홈 화면)에서 요청이 진행 중이면
+   * 그 요청에 콜백을 등록해두었다가 같이 결과를 받는다(waiters). 요청이 실패해도
+   * callback(null)을 반드시 호출해서, 호출한 쪽이 응답을 기다리다 멈추지 않게 한다.
+   */
+  function fetchWeather(callback) {
+    var now = Date.now();
+    if (WeatherCache.data && (now - WeatherCache.fetchedAt) < 30 * 60 * 1000) { callback(WeatherCache.data); return; }
+    if (typeof fetch !== "function") { callback(null); return; }
+    WeatherCache.waiters.push(callback);
+    if (WeatherCache.pending) return;
+    WeatherCache.pending = true;
+    var url = "https://api.open-meteo.com/v1/forecast?latitude=" + GANGNAM_LAT + "&longitude=" + GANGNAM_LON +
+      "&current=temperature_2m,weather_code&timezone=Asia%2FSeoul";
+    function settle(data) {
+      WeatherCache.pending = false;
+      var waiters = WeatherCache.waiters;
+      WeatherCache.waiters = [];
+      waiters.forEach(function (cb) { cb(data); });
+    }
+    fetch(url).then(function (res) { return res.json(); }).then(function (json) {
+      if (json && json.current && json.current.temperature_2m != null) {
+        WeatherCache.data = { temp: Math.round(json.current.temperature_2m), code: json.current.weather_code };
+        WeatherCache.fetchedAt = now;
+        settle(WeatherCache.data);
+      } else {
+        settle(null);
+      }
+    }).catch(function () { settle(null); });
+  }
+  function weatherRemark(w) {
+    if (!w) return "";
+    var desc;
+    if (w.code === 0 || w.code === 1) desc = "맑은 날씨";
+    else if (w.code === 2) desc = "구름이 조금 낀 날씨";
+    else if (w.code === 3) desc = "흐린 날씨";
+    else if (w.code === 45 || w.code === 48) desc = "안개 낀 날씨";
+    else if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].indexOf(w.code) !== -1) desc = "비 오는 날씨";
+    else if ([71, 73, 75, 77, 85, 86].indexOf(w.code) !== -1) desc = "눈 오는 날씨";
+    else if ([95, 96, 99].indexOf(w.code) !== -1) desc = "천둥번개가 치는 날씨";
+    else desc = "흐린 날씨";
+    var note = " 오늘 서울 강남은 " + desc + "에 " + w.temp + "°C예요.";
+    if (w.temp >= 30) note += " 더위가 심하니 수분 섭취를 챙기며 움직여보세요.";
+    else if (w.temp <= 5) note += " 쌀쌀하니 몸을 따뜻하게 하고 시작해보세요.";
+    else if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].indexOf(w.code) !== -1) note += " 비 오는 날엔 트레이시가 강조하는 조용한 자기 성찰 시간을 갖기에 오히려 좋아요.";
+    return note;
+  }
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  /* ============================== 헥사곤 차트 ============================== */
+  function renderHexagon(containerEl, categories, prevCategories) {
+    var w = 320, h = 300, cx = 160, cy = 145, maxR = 92;
+    var n = categories.length;
+    // 값이 낮을수록(특히 여러 영역이 동시에 0에 가까울 때) 6개 점이 전부 중심 한 점으로 겹쳐버려서
+    // 육각형 모양이 아니라 점 뭉치처럼 보이는 문제가 있었다. 0%도 중심에서 minR만큼 떨어진 곳에
+    // 찍히도록 최소 반지름을 둬서, 점수가 낮아도 6개 점이 항상 뚜렷한 육각형으로 이어져 보이게 한다
+    // (25/50/75/100% 기준선도 같은 pt()를 쓰므로 각 점은 여전히 정확한 값 위치에 찍힌다).
+    var minR = maxR * 0.3;
+    function pt(i, valuePct) {
+      var angle = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+      var pct = Math.max(0, Math.min(100, valuePct)) / 100;
+      var r = minR + pct * (maxR - minR);
+      return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
+    }
+    function labelPt(i) {
+      var angle = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+      var r = maxR + 28;
+      return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
+    }
+    function polygonPoints(getPct) {
+      return categories.map(function (c, i) { return pt(i, getPct(c)).join(","); }).join(" ");
+    }
+    var gridRings = [25, 50, 75, 100].map(function (pct) {
+      var points = categories.map(function (c, i) { return pt(i, pct).join(","); }).join(" ");
+      return '<polygon points="' + points + '" fill="none" stroke="var(--color-border)" stroke-width="1" />';
+    }).join("");
+    var axisLines = categories.map(function (c, i) {
+      var p = pt(i, 100);
+      return '<line x1="' + cx + '" y1="' + cy + '" x2="' + p[0] + '" y2="' + p[1] + '" stroke="var(--color-border)" stroke-width="1" />';
+    }).join("");
+    var labels = categories.map(function (c, i) {
+      var p = labelPt(i);
+      var anchor = Math.abs(p[0] - cx) < 4 ? "middle" : (p[0] > cx ? "start" : "end");
+      return '<text x="' + p[0] + '" y="' + p[1] + '" font-size="11" fill="var(--color-ink)" text-anchor="' + anchor + '" dominant-baseline="middle">' + escapeHtml(CATEGORY_LABELS[c.key]) + '</text>';
+    }).join("");
+    var prevPoly = prevCategories ? '<polygon points="' + polygonPoints(function (c) {
+      var p = prevCategories.filter(function (pc) { return pc.key === c.key; })[0];
+      return p ? p.finalScore : 0;
+    }) + '" fill="var(--color-prev-month)" fill-opacity="0.15" stroke="var(--color-prev-month)" stroke-width="1.5" stroke-dasharray="4 3" />' : "";
+    // 입체감: 단색 반투명 채우기 대신 위쪽이 밝고 아래로 갈수록 옅어지는 그라디언트 채우기 +
+    // 도형 아래로 은은한 그림자(feDropShadow)를 줘서 카드 위에 살짝 떠 있는 느낌을 준다.
+    // 꼭짓점마다 작은 원(점)을 얹어 값이 찍히는 지점을 도드라지게 표시한다.
+    var curPts = categories.map(function (c, i) { return pt(i, c.finalScore); });
+    var curPoly = '<polygon points="' + curPts.map(function (p) { return p.join(","); }).join(" ") +
+      '" fill="url(#hexFillGrad)" stroke="var(--color-brand)" stroke-width="2.25" stroke-linejoin="round" filter="url(#hexShadow)" />';
+    var vertexDots = curPts.map(function (p) {
+      return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="3.5" fill="var(--color-brand)" stroke="var(--color-surface)" stroke-width="1.5" />';
+    }).join("");
+    var defs =
+      '<defs>' +
+        '<radialGradient id="hexFillGrad" cx="50%" cy="32%" r="80%">' +
+          '<stop offset="0%" stop-color="var(--color-accent)" stop-opacity="0.55" />' +
+          '<stop offset="100%" stop-color="var(--color-accent)" stop-opacity="0.16" />' +
+        '</radialGradient>' +
+        '<radialGradient id="hexFloorGlow" cx="50%" cy="50%" r="60%">' +
+          '<stop offset="0%" stop-color="var(--color-brand)" stop-opacity="0.10" />' +
+          '<stop offset="100%" stop-color="var(--color-brand)" stop-opacity="0" />' +
+        '</radialGradient>' +
+        '<filter id="hexShadow" x="-50%" y="-50%" width="200%" height="200%">' +
+          '<feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="var(--color-brand)" flood-opacity="0.35" />' +
+        '</filter>' +
+      '</defs>';
+    var floorGlow = '<circle cx="' + cx + '" cy="' + cy + '" r="' + (maxR + 6) + '" fill="url(#hexFloorGlow)" />';
+
+    containerEl.innerHTML =
+      '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="260" role="img" aria-label="라이프 헥사곤 차트">' +
+      defs + floorGlow + gridRings + axisLines + prevPoly + curPoly + vertexDots + labels +
+      '</svg>';
+  }
+
+  /* ============================== 라우팅 / 네비게이션 ============================== */
+  var NAV_ITEMS = [
+    { id: "home", label: "홈" },
+    { id: "quick", label: "기록 추가" },
+    { id: "records", label: "기록" },
+    { id: "compare", label: "월간 분석" },
+    { id: "settings", label: "설정" }
+  ];
+  /* 모바일 하단 바 아이콘: 이모지 대신 Lucide 라인 아이콘(단색, 선 굵기 2 고정)을 인라인 SVG로 사용한다
+   * (오프라인 전용 앱이라 외부 아이콘 폰트/CDN 없이 path 데이터를 직접 내장했다).
+   * "기록 추가"는 가운데 떠 있는 원형 + 버튼으로 표시한다
+   * (DOM 순서는 NAV_ITEMS 그대로 유지하고, CSS order로만 시각적 위치를 바꾼다).
+   */
+  var NAV_ICON_PATHS = {
+    home: '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+    records: '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+    quick: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+    compare: '<path d="M5 21v-6"/><path d="M12 21V9"/><path d="M19 21V3"/>',
+    settings: '<path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/>'
+  };
+  function navIconSvg(id, size) {
+    size = size || 22;
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + NAV_ICON_PATHS[id] + '</svg>';
+  }
+  var state = {
+    view: "home", quickTab: null, compareMode: null,
+    recordsDateFilter: null, recordsTypeFilter: null, recordsSearch: "",
+    editRecord: null, // { type, id } — 전체 기록 화면에서 "수정"을 눌렀을 때만 채워진다.
+    calMonthAnchor: null // 홈 화면 캘린더가 보여주는 달(그 달 아무 날짜의 YYYY-MM-DD). null이면 이번 달.
+  };
+
+  function navigate(viewId, extra) {
+    state.view = viewId;
+    // extra에 editRecord를 명시적으로 넘긴 경우(startEdit)가 아니면, 다른 화면/탭으로 이동할 때
+    // 진행 중이던 "수정" 상태는 자동으로 해제한다(엉뚱한 폼이 수정 모드로 뜨는 걸 방지).
+    if (!(extra && Object.prototype.hasOwnProperty.call(extra, "editRecord"))) state.editRecord = null;
+    if (extra) Object.assign(state, extra);
+    closeRecordSheet();
+    renderNav();
+    renderView();
+    window.scrollTo(0, 0);
+  }
+
+  /** 전체 기록 화면의 "수정" 버튼에서 호출한다: 해당 기록을 수정 모드로 열며 해당 입력 화면으로 이동한다. */
+  function startEdit(type, id, quickTab, extra) {
+    var payload = Object.assign({ quickTab: quickTab, editRecord: { type: type, id: id } }, extra || {});
+    navigate("quick", payload);
+  }
+  /** 수정 폼의 "취소" 버튼에서 호출한다: 저장하지 않고 전체 기록 화면으로 되돌아간다. */
+  function cancelEdit() {
+    state.editRecord = null;
+    navigate("records");
+  }
+
+  function renderNav() {
+    var sidebarNav = document.getElementById("sidebarNav");
+    var bottomNav = document.getElementById("bottomNav");
+    sidebarNav.innerHTML = "";
+    bottomNav.innerHTML = "";
+    NAV_ITEMS.forEach(function (item) {
+      var active = state.view === item.id;
+      var b1 = el('<button class="navitem' + (active ? " active" : "") + '"><span class="dot"></span>' + item.label + '</button>');
+      b1.addEventListener("click", function () { navigate(item.id); });
+      sidebarNav.appendChild(b1);
+
+      var b2;
+      if (item.id === "quick") {
+        // 모바일에서는 페이지 이동 대신, 기록 항목을 고르는 바텀시트를 띄운다.
+        b2 = el('<button class="bnav-fab" aria-label="' + item.label + '"><span class="bnav-fab-icon">' + navIconSvg("quick", 24) + '</span></button>');
+        b2.addEventListener("click", function () { openRecordSheet(); });
+      } else {
+        b2 = el('<button class="' + (active ? "active" : "") + '"><span class="bnav-icon">' + navIconSvg(item.id, 22) + '</span><span class="bnav-label">' + item.label + '</span></button>');
+        b2.addEventListener("click", function () { navigate(item.id); });
+      }
+      bottomNav.appendChild(b2);
+    });
+  }
+
+  /* ============================== "기록 추가" 바텀시트 ============================== */
+  var recordSheetBuilt = false;
+  function buildRecordSheetOnce() {
+    if (recordSheetBuilt) return;
+    recordSheetBuilt = true;
+    var list = document.getElementById("recordSheetList");
+    QUICK_CARDS.forEach(function (c) {
+      var row = el('<button type="button" class="sheet-row"><span class="badge badge-' + c.key + '">' + c.icon + '</span>' +
+        '<span class="sheet-row-info"><span class="sheet-row-label">' + c.label + '</span>' +
+        '<span class="sheet-row-desc">' + c.desc + '</span></span></button>');
+      row.addEventListener("click", function () {
+        closeRecordSheet();
+        navigate("quick", { quickTab: c.key });
+      });
+      list.appendChild(row);
+    });
+  }
+  function openRecordSheet() {
+    buildRecordSheetOnce();
+    document.getElementById("recordSheetBackdrop").classList.add("show");
+    document.getElementById("recordSheet").classList.add("show");
+  }
+  function closeRecordSheet() {
+    var backdrop = document.getElementById("recordSheetBackdrop");
+    var sheet = document.getElementById("recordSheet");
+    if (backdrop) backdrop.classList.remove("show");
+    if (sheet) sheet.classList.remove("show");
+  }
+
+  /* ============================== "설명 보기" 정보 시트 ============================== */
+  // 라이프 점수·조화지수처럼 이 앱에서 새로 만든 용어는 처음 보는 사람에게 낯설 수 있어서,
+  // 숫자 옆 (ⓘ) 버튼을 누르면 짧은 설명을 바텀시트로 보여준다.
+  var INFO_TEXTS = {
+    lifeScore: {
+      title: "라이프 점수란?",
+      body: "회사·운동·가족·프로젝트·소득·셀프케어, 6개 영역 점수의 평균이에요. 각 영역 점수는 목표 달성률과 만족도를 함께 반영해서 계산돼요. 기록이 쌓일수록 더 정확해져요."
+    },
+    harmonyIndex: {
+      title: "조화지수란?",
+      body: "6개 영역 점수가 서로 얼마나 고르게 관리되고 있는지를 나타내요. 특정 영역만 유독 높거나 낮으면 조화지수가 낮아지고, 여러 영역이 비슷한 수준으로 관리되고 있으면 높아져요. 아직 기록이 없는 영역이 많으면 다소 왜곡될 수 있어요."
+    }
+  };
+  function openInfoSheet(key) {
+    var info = INFO_TEXTS[key];
+    if (!info) return;
+    document.getElementById("infoSheetTitle").textContent = info.title;
+    document.getElementById("infoSheetBody").textContent = info.body;
+    document.getElementById("infoSheetBackdrop").classList.add("show");
+    document.getElementById("infoSheet").classList.add("show");
+  }
+  function closeInfoSheet() {
+    var backdrop = document.getElementById("infoSheetBackdrop");
+    var sheet = document.getElementById("infoSheet");
+    if (backdrop) backdrop.classList.remove("show");
+    if (sheet) sheet.classList.remove("show");
+  }
+
+  function renderView() {
+    var root = document.getElementById("viewRoot");
+    root.innerHTML = "";
+    var view = VIEWS[state.view];
+    if (view) root.appendChild(view());
+    wireMoneyHints(root);
+    // 메뉴(타일/시트 항목)를 눌러 기록 입력 화면으로 들어왔을 때, 입력창까지 다시 손대지
+    // 않아도 되도록 그 화면의 첫 입력 필드로 자동 포커스를 옮긴다. 타일 그리드까지 포함하면
+    // "운동"·"프로젝트"처럼 첫 입력 필드가 없는 화면에서 엉뚱한(관련 없는) 상단 타일이
+    // 포커스되므로, 방금 열린 상세 영역(#quickDetailScope)이 있으면 그 안에서만 찾는다.
+    if (state.view === "quick" && state.quickTab) {
+      var detailScope = root.querySelector("#quickDetailScope") || root;
+      focusFirstField(detailScope);
+    }
+  }
+
+  /**
+   * scopeEl 안에서 화면에 실제로 보이는(숨겨지지 않은) 첫 입력 필드를 찾아 포커스한다.
+   * 운동 종류 선택이나, 등록된 프로젝트가 없을 때의 진행률 화면처럼 text/select 입력이
+   * 아예 없는 화면도 있는데, 그럴 때 아무것도 포커스하지 않으면 방금 닫힌 바텀시트 버튼에
+   * 포커스가 그대로 남아 "오토포커싱이 안 되는" 것처럼 보인다. 그런 화면에서는 대신
+   * 화면 안의 첫 버튼(운동 종류 타일, 탭 버튼 등)으로라도 포커스를 옮겨준다.
+   */
+  function focusFirstField(scopeEl) {
+    setTimeout(function () {
+      function isVisible(elm) { return !!(elm.offsetWidth || elm.offsetHeight || elm.getClientRects().length); }
+      var candidates = scopeEl.querySelectorAll("input, textarea, select");
+      for (var i = 0; i < candidates.length; i++) {
+        var c = candidates[i];
+        if (c.type === "hidden" || c.disabled) continue;
+        if (!isVisible(c)) continue; // display:none 등 숨김 필드는 건너뜀
+        try { c.focus(); } catch (e) { /* 포커스를 지원하지 않는 환경이면 조용히 무시 */ }
+        return;
+      }
+      var buttons = scopeEl.querySelectorAll("button");
+      for (var j = 0; j < buttons.length; j++) {
+        var b = buttons[j];
+        if (b.disabled || !isVisible(b)) continue;
+        try { b.focus(); } catch (e) { /* 포커스를 지원하지 않는 환경이면 조용히 무시 */ }
+        return;
+      }
+    }, 0);
+  }
+
+  /* ============================== 화면: 홈 ============================== */
+  /**
+   * mode: "same-period"(이번 달 동일 기간까지) | "full-month"(각각 월 전체) | 생략 시 자동
+   * (이번 달이 진행 중이면 동일 기간, 끝난 두 달이면 전체 월 비교).
+   */
+  function computeRanges(mode) {
+    var today = new Date();
+    var currentAnchor = today;
+    var previousAnchor = subMonths(today, 1);
+    var resolved;
+    if (mode === "same-period") {
+      var currentRange = { start: startOfMonth(currentAnchor), end: today };
+      resolved = { mode: "same-period", current: currentRange, previous: sameRangeInPreviousMonth(currentRange.start, currentRange.end) };
+    } else if (mode === "full-month") {
+      resolved = { mode: "full-month", current: fullMonthRange(currentAnchor), previous: fullMonthRange(previousAnchor) };
+    } else {
+      resolved = resolveComparisonRanges(currentAnchor, previousAnchor, today);
+    }
+    return {
+      today: today,
+      mode: resolved.mode,
+      currentRaw: resolved.current,
+      previousRaw: resolved.previous,
+      current: toQueryRange(resolved.current),
+      previous: toQueryRange(resolved.previous),
+      currentYearMonth: toYearMonth(today)
+    };
+  }
+  function fmtRangeLabel(r) {
+    return r.start.getFullYear() + "." + pad2(r.start.getMonth() + 1) + "." + r.start.getDate() + "-" + r.end.getDate();
+  }
+
+  function accountAgeDays() {
+    var db = DB.get();
+    if (!db.firstUsedAt) { db.firstUsedAt = todayISO(); DB.save(); }
+    return Math.max(1, diffCalendarDays(new Date(), parseISODate(db.firstUsedAt)));
+  }
+
+  var CAL_DOW_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
+  /**
+   * 홈 화면 하단의 "기록 캘린더" 카드 HTML. 하루라도 기록이 있으면 날짜를 원으로 표시하고,
+   * 상단 화살표로 월을 이동할 수 있으며(이번 달 이후로는 이동 불가), 날짜를 탭하면 해당
+   * 날짜로 필터링된 전체 기록 화면으로 이동한다. 보고 있는 달은 state.calMonthAnchor에 저장된다.
+   */
+  function monthCalendarCardHtml() {
+    var todayStr = todayISO();
+    var todayDate = new Date();
+    var anchorStr = state.calMonthAnchor || todayStr;
+    var anchor = parseISODate(anchorStr);
+    var year = anchor.getFullYear(), month0 = anchor.getMonth();
+    var firstDow = new Date(year, month0, 1).getDay(); // 0=일 ... 6=토
+    var totalDays = daysInMonth(year, month0);
+    var recordDates = activityDatesInMonth(anchorStr);
+    var isCurrentMonth = (year === todayDate.getFullYear() && month0 === todayDate.getMonth());
+    var streak = computeStreak();
+
+    var cells = "";
+    for (var i = 0; i < firstDow; i++) {
+      cells += '<div class="cal-cell cal-empty"><span class="cal-num">0</span></div>';
+    }
+    for (var d = 1; d <= totalDays; d++) {
+      var dateStr = year + "-" + pad2(month0 + 1) + "-" + pad2(d);
+      var isToday = dateStr === todayStr;
+      var hasRecord = !!recordDates[dateStr];
+      cells += '<div class="cal-cell' + (hasRecord ? " cal-has-record" : "") + (isToday ? " cal-today" : "") + '">' +
+        '<button type="button" class="cal-num" data-cal-date="' + dateStr + '">' + d + '</button></div>';
+    }
+
+    return '<div class="card" style="margin-top:14px;">' +
+      (streak.count > 0 ?
+        '<div class="cal-streak"><span>🔥</span><span>' + streak.count + '일 연속 기록' + (streak.includesToday ? "" : " 중 (오늘 기록 전)") + '</span></div>'
+        : "") +
+      '<div class="cal-nav-row">' +
+        '<button type="button" class="cal-nav-btn" id="calPrevMonth" aria-label="이전 달">‹</button>' +
+        '<h2 class="section-title" style="margin:0;">' + (month0 + 1) + '월 기록 캘린더</h2>' +
+        '<button type="button" class="cal-nav-btn" id="calNextMonth" aria-label="다음 달"' + (isCurrentMonth ? " disabled" : "") + '>›</button>' +
+      '</div>' +
+      '<div class="cal-dow-row">' + CAL_DOW_LABELS.map(function (l) { return '<div class="cal-dow">' + l + '</div>'; }).join("") + '</div>' +
+      '<div class="cal-grid">' + cells + '</div>' +
+      '<div class="cal-legend"><span class="cal-dot-sample"></span><span>하루라도 기록을 남긴 날 · 탭하면 그날 기록으로 이동해요</span></div>' +
+    '</div>';
+  }
+
+  /**
+   * 기록이 하나도 없는 완전히 처음 상태에서 보여줄 환영 화면. 이 상태로 평소 홈 화면을 그대로
+   * 보여주면 라이프 점수 0점에 조화지수는 오히려 100점(모든 영역이 똑같이 0이라 "고르다"고
+   * 계산됨), 6개 영역 전부 0.0으로 나열돼서 처음 쓰는 사람에게는 혼란스러운 숫자 나열일 뿐이다.
+   * 그래서 기록이 하나라도 생기기 전까지는 숫자 대신 안내와 시작 버튼만 보여준다.
+   */
+  function viewHomeWelcome() {
+    var wrap = el('<div></div>');
+    wrap.innerHTML =
+      '<div class="small muted" style="margin-bottom:10px;">' + fmtDateKo(todayISO()) + '</div>' +
+      '<div class="card" style="margin-top:0; text-align:center; padding:36px 22px;">' +
+        '<div style="font-size:42px; margin-bottom:14px;">👋</div>' +
+        '<h2 class="section-title" style="margin-bottom:10px;">GS Fit에 오신 걸 환영해요!</h2>' +
+        '<p class="small muted" style="margin:0 0 22px; line-height:1.7;">' +
+          '회사·운동·가족·프로젝트·소득·셀프케어, 6가지 영역을 기록하면<br/>' +
+          '라이프 점수와 균형 상태를 한눈에 볼 수 있어요.<br/>' +
+          '첫 기록을 남겨보세요.' +
+        '</p>' +
+        '<button class="btn btn-primary btn-block" id="goQuickWelcome">첫 기록 남기기</button>' +
+      '</div>';
+    wrap.querySelector("#goQuickWelcome").addEventListener("click", function () { navigate("quick"); });
+    return wrap;
+  }
+
+  function viewHome() {
+    if (!hasAnyRecords()) return viewHomeWelcome();
+    var ranges = computeRanges();
+    var current = computeDashboard(ranges.current);
+    var previous = computeDashboard(ranges.previous);
+    var days = accountAgeDays();
+    var insights = generateInsights(current, previous, days);
+    var db = DB.get();
+    var latestThoughtWithFeedback = null;
+    for (var ti = db.thoughtRecords.length - 1; ti >= 0; ti--) {
+      if (db.thoughtRecords[ti].feedback) { latestThoughtWithFeedback = db.thoughtRecords[ti]; break; }
+    }
+    // "생각 기록"과 동일한 패턴으로, 홈 화면에도 가장 최근 투자 기록(피드백 받은 것 우선)을
+    // 노출한다. 점수 계산에는 관여하지 않지만, 기록 자체는 홈에서 바로 눈에 띄어야 한다는
+    // 요청에 따라 추가했다.
+    var latestInvestmentWithFeedback = null;
+    for (var vi = db.investmentRecords.length - 1; vi >= 0; vi--) {
+      if (db.investmentRecords[vi].feedback) { latestInvestmentWithFeedback = db.investmentRecords[vi]; break; }
+    }
+    var latestInvestment = db.investmentRecords.length ? db.investmentRecords[db.investmentRecords.length - 1] : null;
+
+    var lifeDelta = fmtNum(current.lifeScore - previous.lifeScore);
+    var harmonyDelta = fmtNum(current.harmonyIndex - previous.harmonyIndex);
+    function deltaClass(d) { return d > 0 ? "up" : d < 0 ? "down" : "flat"; }
+
+    var best = current.categories.slice().sort(function (a, b) { return b.finalScore - a.finalScore; })[0];
+    var worst = current.categories.slice().sort(function (a, b) { return a.finalScore - b.finalScore; })[0];
+
+    var wrap = el('<div></div>');
+    wrap.innerHTML =
+      '<div class="small muted" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">' +
+        '<span>' + fmtDateKo(todayISO()) + '</span>' +
+        '<span id="weatherHolder" style="display:none;"></span>' +
+      '</div>' +
+      '<div class="stat-grid">' +
+        '<div class="stat-card"><div class="stat-label">라이프 점수<button type="button" class="info-btn" data-info="lifeScore" aria-label="라이프 점수란?">ⓘ</button></div><div class="stat-value">' + current.lifeScore + '</div>' +
+          '<div class="stat-delta ' + deltaClass(lifeDelta) + '">' + (lifeDelta >= 0 ? "+" : "") + lifeDelta + ' (이전 대비)</div></div>' +
+        '<div class="stat-card"><div class="stat-label">조화지수<button type="button" class="info-btn" data-info="harmonyIndex" aria-label="조화지수란?">ⓘ</button></div><div class="stat-value">' + current.harmonyIndex + '</div>' +
+          '<div class="stat-delta ' + deltaClass(harmonyDelta) + '">' + (harmonyDelta >= 0 ? "+" : "") + harmonyDelta + ' (이전 대비)</div></div>' +
+      '</div>' +
+      '<div class="card" style="margin-top:14px;">' +
+        '<div style="display:flex; justify-content:flex-end; align-items:center;">' +
+          '<span class="tiny muted">기록률 ' + (current.recordRate != null ? current.recordRate + "%" : "데이터 부족") + '</span>' +
+        '</div>' +
+        '<div id="hexHolder"></div>' +
+        '<div class="legend-grid">' +
+          current.categories.map(function (c) {
+            var extra = "";
+            if (c.key === "extra_income") {
+              var cum = incomeCumulativeAsOf(todayISO());
+              extra = '<div class="tiny muted" style="margin-top:2px;">누적 ' + fmtWon(cum.cumulativeTotal) + '</div>';
+            }
+            if (c.key === "company") {
+              var spend = companySpendSnapshot(todayISO());
+              extra = '<div class="tiny muted" style="margin-top:2px;">이번 달 근무 ' + spend.totalWorkHours + '시간 · 누적 ' + fmtWon(spend.total) + '</div>';
+            }
+            if (c.key === "exercise") {
+              var ex = exerciseMonthlySnapshot(todayISO());
+              extra = '<div class="tiny muted" style="margin-top:2px;">이번 달 누적 ' + ex.count + '회</div>';
+            }
+            if (c.key === "self_time") {
+              var st = selfTimeMonthlySnapshot(todayISO());
+              extra = '<div class="tiny muted" style="margin-top:2px;">이번 달 누적 ' + st.totalHours + '시간 · ' + fmtWon(st.totalAmount) + '</div>';
+            }
+            return '<div class="legend-item"><span class="muted">' + CATEGORY_LABELS[c.key] + '</span><b>' + c.finalScore.toFixed(1) + '</b>' + extra + '</div>';
+          }).join("") +
+        '</div>' +
+        // 모든 영역 점수가 같으면(대표적으로 기록이 아예 없는 첫날, 전부 0.0점) best와 worst가
+        // 같은 영역으로 뽑혀 "가장 좋은 영역: 회사 · 보완할 영역: 회사"처럼 앞뒤가 안 맞는 문구가
+        // 나온다. 그럴 땐 비교 자체가 의미 없으므로 문구를 아예 숨긴다.
+        (best && worst && best.key !== worst.key ? '<p class="small muted" style="margin-top:12px; margin-bottom:0;">가장 좋은 영역: <b style="color:var(--color-positive)">' + CATEGORY_LABELS[best.key] + '</b> · 보완할 영역: <b style="color:var(--color-negative)">' + CATEGORY_LABELS[worst.key] + '</b></p>' : "") +
+      '</div>' +
+      '<div class="card" style="margin-top:14px;">' +
+        '<button class="btn btn-primary btn-block" id="goQuick">오늘 기록하기</button>' +
+      '</div>' +
+      '<div class="card" style="margin-top:14px;">' +
+        '<h2 class="section-title">자동 인사이트</h2>' +
+        (insights.length ? insights.map(function (i) {
+          var color = i.tone === "positive" ? "var(--color-positive)" : i.tone === "negative" ? "var(--color-negative)" : "var(--color-neutral)";
+          return '<div class="insight-item"><span style="color:' + color + '">●</span> ' + escapeHtml(i.message) + '</div>';
+        }).join("") : '<p class="small muted">아직 인사이트를 만들 데이터가 부족해요.</p>') +
+      '</div>' +
+      '<div class="card" style="margin-top:14px;">' +
+        '<h2 class="section-title">💬 라이프 코치 피드백</h2>' +
+        (latestThoughtWithFeedback ?
+          '<p class="tiny muted" style="margin:0 0 8px;">' + fmtDateKo(latestThoughtWithFeedback.date) + ' · 생각 기록</p>' +
+          '<p style="white-space:pre-wrap; margin:0 0 10px;">' + escapeHtml(latestThoughtWithFeedback.text) + '</p>' +
+          feedbackBoxHtml(latestThoughtWithFeedback)
+          : '<p class="small muted">아직 받은 피드백이 없어요. "생각 기록"에서 ' + COACH_NAME + '에게 피드백을 받아보세요.</p>') +
+      '</div>' +
+      '<div class="card" style="margin-top:14px;">' +
+        '<h2 class="section-title">📈 투자 기록</h2>' +
+        (latestInvestmentWithFeedback ?
+          '<p class="tiny muted" style="margin:0 0 8px;">' + fmtDateKo(latestInvestmentWithFeedback.date) + '</p>' +
+          '<p style="white-space:pre-wrap; margin:0 0 10px;">' + escapeHtml(latestInvestmentWithFeedback.text) + '</p>' +
+          investorFeedbackBoxHtml(latestInvestmentWithFeedback)
+          : latestInvestment ?
+          '<p class="tiny muted" style="margin:0 0 8px;">' + fmtDateKo(latestInvestment.date) + '</p>' +
+          '<p style="white-space:pre-wrap; margin:0 0 10px;">' + escapeHtml(latestInvestment.text) + '</p>' +
+          '<button type="button" class="btn" id="goInvestmentFeedback">💬 ' + INVESTOR_NAME + '에게 피드백 받기</button>'
+          : '<p class="small muted">아직 남긴 투자 기록이 없어요. "투자 기록"에서 오늘의 생각을 남겨보세요.</p>') +
+      '</div>' +
+      monthCalendarCardHtml();
+
+    renderHexagon(wrap.querySelector("#hexHolder"), current.categories, previous.categories);
+    wrap.querySelector("#goQuick").addEventListener("click", function () { navigate("quick"); });
+    var goInvestmentFeedback = wrap.querySelector("#goInvestmentFeedback");
+    if (goInvestmentFeedback) goInvestmentFeedback.addEventListener("click", function () { navigate("quick", { quickTab: "investment" }); });
+
+    // 캘린더 월 이동: 스크롤 위치를 유지해야 하는 화면 하단 조작이라 navigate() 대신
+    // state만 갱신하고 renderView()로 그 화면만 다시 그린다(맨 위로 스크롤되지 않도록).
+    var calPrev = wrap.querySelector("#calPrevMonth");
+    var calNext = wrap.querySelector("#calNextMonth");
+    if (calPrev) calPrev.addEventListener("click", function () {
+      var anchor = parseISODate(state.calMonthAnchor || todayISO());
+      state.calMonthAnchor = fmtISO(subMonths(anchor, 1));
+      renderView();
+    });
+    if (calNext) calNext.addEventListener("click", function () {
+      if (calNext.disabled) return;
+      var anchor = parseISODate(state.calMonthAnchor || todayISO());
+      state.calMonthAnchor = fmtISO(addMonthsSafe(anchor, 1));
+      renderView();
+    });
+    wrap.querySelectorAll("button[data-cal-date]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        navigate("records", { recordsDateFilter: btn.getAttribute("data-cal-date") });
+      });
+    });
+
+    var weatherHolder = wrap.querySelector("#weatherHolder");
+    fetchWeather(function (data) {
+      if (!weatherHolder || !data) return;
+      weatherHolder.style.display = "";
+      weatherHolder.textContent = weatherIconFor(data.code) + " " + data.temp + "°C · 서울 강남";
+    });
+
+    return wrap;
+  }
+
+  /* ============================== 화면: 오늘의 기록 (허브) ============================== */
+  var QUICK_CARDS = [
+    { key: "company", label: "회사", desc: "점심·커피·회식과 퇴근 시간을 기록해요", icon: "🏢" },
+    { key: "exercise", label: "운동", desc: "헬스·골프·산책을 간편하게 기록해요", icon: "🤸" },
+    { key: "family", label: "가족", desc: "부모님·Star와의 연락 및 교류를 기록해요", icon: "👪" },
+    { key: "side_project", label: "프로젝트", desc: "프로젝트 진행 상황을 업데이트해요", icon: "💼" },
+    { key: "extra_income", label: "소득", desc: "발생일과 금액을 기록해요", icon: "💰" },
+    { key: "self_time", label: "셀프케어", desc: "휴가·여행·헤어 등 셀프케어를 기록해요", icon: "🌿" },
+    { key: "thought", label: "생각 기록", desc: "오늘의 생각을 편하게 남겨보세요", icon: "💭" },
+    { key: "investment", label: "투자 기록", desc: "투자 아이디어와 생각을 편하게 남겨보세요", icon: "📈" }
+  ];
+
+  function viewQuickHub() {
+    var wrap = el('<div class="tile-grid"></div>');
+    QUICK_CARDS.forEach(function (c) {
+      var tile = el('<button class="tile"><span class="badge badge-' + c.key + '">' + c.icon + '</span>' +
+        '<span class="t-label">' + c.label + '</span><span class="t-desc">' + c.desc + '</span></button>');
+      tile.addEventListener("click", function () { navigate("quick", { quickTab: c.key }); });
+      wrap.appendChild(tile);
+    });
+    if (state.quickTab) {
+      var detail = el('<div id="quickDetailScope" style="grid-column: 1 / -1; margin-top: 4px;"></div>');
+      detail.appendChild(renderQuickDetail(state.quickTab));
+      wrap.appendChild(detail);
+    }
+    return wrap;
+  }
+
+  function renderQuickDetail(key) {
+    var box = el('<div class="card"></div>');
+    if (key === "company") {
+      box.appendChild(renderCompanyDetail());
+    } else if (key === "exercise") {
+      box.appendChild(renderExerciseForm());
+    } else if (key === "family") {
+      box.appendChild(renderFamilyForm());
+    } else if (key === "side_project") {
+      box.appendChild(renderSideProjectForm());
+    } else if (key === "extra_income") {
+      box.appendChild(renderIncomeForm());
+    } else if (key === "self_time") {
+      box.appendChild(renderSelfTimeForm());
+    } else if (key === "thought") {
+      box.appendChild(renderThoughtForm());
+    } else if (key === "investment") {
+      box.appendChild(renderInvestmentForm());
+    }
+    return box;
+  }
+
+  function renderCompanyDetail() {
+    var wrap = el('<div></div>');
+    var tab = state.companyTab || "activity";
+    wrap.innerHTML =
+      '<div class="tabbar">' +
+        '<button class="tabbtn' + (tab === "activity" ? " active" : "") + '" data-tab="activity">식사·커피·회식</button>' +
+        '<button class="tabbtn' + (tab === "leave" ? " active" : "") + '" data-tab="leave">퇴근</button>' +
+      '</div>' +
+      '<div id="companyTabBody"></div>';
+    wrap.querySelectorAll(".tabbtn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        state.companyTab = btn.getAttribute("data-tab");
+        navigate("quick", { quickTab: "company" });
+      });
+    });
+    var body = wrap.querySelector("#companyTabBody");
+    body.appendChild(tab === "leave" ? renderLeaveForm() : renderCompanyForm());
+    return wrap;
+  }
+
+  function fieldLabel(text) { return '<span class="field-label">' + text + '</span>'; }
+
+  function renderCompanyForm() {
+    var wrap = el('<form></form>');
+    var subtypes = [["lunch", "점심"], ["coffee", "커피"], ["dinner", "저녁"], ["dinner_party", "회식"]];
+    var payers = [["self", "본인"], ["company", "회사"], ["other_person", "상대방"], ["etc", "기타"]];
+    var editing = (state.editRecord && state.editRecord.type === "company") ?
+      DB.get().companyActivities.filter(function (x) { return x.id === state.editRecord.id; })[0] : null;
+    var selectedSubtype = editing ? editing.subtype : "lunch", selectedPayer = editing ? editing.payer : "self";
+    var spend = companySpendSnapshot(todayISO());
+    var mealTarget = DB.get().targets.companyMealMonthlyTarget || 5;
+
+    wrap.innerHTML =
+      (editing ? '' : '<div class="card" style="padding:12px 14px; margin-bottom:14px; background:var(--color-accent-light);">' +
+        '<div class="tiny muted">' + spend.monthLabel + ' 근무시간 (오전 8:30 시작 기준)</div>' +
+        '<div style="font-size:20px; font-weight:800; margin-top:2px;">' + spend.totalWorkHours + '시간</div>' +
+        '<div class="tiny muted" style="margin-top:4px;">누적 사용 비용 ' + fmtWon(spend.total) + ' · 점심·저녁·회식 ' + spend.mealCount + '회 (커피 제외) · 월 목표 ' + mealTarget + '회</div>' +
+      '</div>') +
+      (editing ? '<p class="small muted" style="margin:0 0 10px;">✎ 기록을 수정하고 있어요.</p>' : '') +
+      '<label class="field">' + fieldLabel("항목") +
+        '<div class="chip-group" id="subtypeChips">' + subtypes.map(function (s) {
+          return '<button type="button" class="chip' + (s[0] === selectedSubtype ? " selected" : "") + '" data-v="' + s[0] + '">' + s[1] + '</button>';
+        }).join("") + '</div></label>' +
+      '<label class="field">' + fieldLabel("날짜") + '<input class="input" type="date" name="activity_date" value="' + (editing ? editing.activity_date : todayISO()) + '" required /></label>' +
+      '<div class="row2">' +
+        '<label class="field">' + fieldLabel("횟수") + '<input class="input" type="number" name="count" min="1" value="' + (editing ? editing.count : 1) + '" /></label>' +
+        '<label class="field">' + fieldLabel("금액 (원)") + '<input class="input" type="number" name="amount_krw" data-money="1" min="0" step="100" value="' + (editing ? editing.amount_krw : 0) + '" /><span class="amount-hint"></span></label>' +
+      '</div>' +
+      '<label class="field">' + fieldLabel("비용 부담 주체") +
+        '<div class="chip-group" id="payerChips">' + payers.map(function (p) {
+          return '<button type="button" class="chip' + (p[0] === selectedPayer ? " selected" : "") + '" data-v="' + p[0] + '">' + p[1] + '</button>';
+        }).join("") + '</div></label>' +
+      '<label class="field">' + fieldLabel("만족도 (1~5)") + '<input class="input" type="range" name="satisfaction" min="1" max="5" value="' + (editing ? editing.satisfaction || 4 : 4) + '" /></label>' +
+      '<label class="field">' + fieldLabel("함께한 사람 (쉼표로 구분)") + '<input class="input" type="text" name="people" placeholder="예: 김철수, 이영희" value="' + (editing && editing.people ? escapeHtml(editing.people.join(", ")) : "") + '" /></label>' +
+      '<label class="field">' + fieldLabel("메모 (선택)") + '<textarea class="input" name="memo" maxlength="500">' + (editing ? escapeHtml(editing.memo || "") : "") + '</textarea></label>' +
+      '<button class="btn btn-primary btn-block" type="submit">' + (editing ? "수정 완료" : "저장") + '</button>' +
+      (editing ? '<button type="button" class="btn btn-block" id="companyCancelEdit" style="margin-top:8px;">취소</button>' : '') +
+      '<p class="small muted" id="companyStatus" style="margin-top:10px;"></p>';
+
+    wrap.querySelectorAll("#subtypeChips .chip").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        selectedSubtype = chip.getAttribute("data-v");
+        wrap.querySelectorAll("#subtypeChips .chip").forEach(function (c) { c.classList.toggle("selected", c === chip); });
+      });
+    });
+    wrap.querySelectorAll("#payerChips .chip").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        selectedPayer = chip.getAttribute("data-v");
+        wrap.querySelectorAll("#payerChips .chip").forEach(function (c) { c.classList.toggle("selected", c === chip); });
+      });
+    });
+    if (editing) {
+      wrap.querySelector("#companyCancelEdit").addEventListener("click", cancelEdit);
+    }
+    wrap.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var fd = new FormData(wrap);
+      var db = DB.get();
+      var people = String(fd.get("people") || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+      var fields = {
+        subtype: selectedSubtype, activity_date: fd.get("activity_date"),
+        count: Math.max(1, Number(fd.get("count")) || 1), amount_krw: Math.max(0, Number(fd.get("amount_krw")) || 0),
+        payer: selectedPayer, satisfaction: Number(fd.get("satisfaction")) || 4,
+        people: people, memo: String(fd.get("memo") || "")
+      };
+      if (editing) {
+        var target = db.companyActivities.filter(function (x) { return x.id === editing.id; })[0];
+        if (target) Object.assign(target, fields);
+        state.editRecord = null;
+        saveOrToast("수정했어요!");
+        navigate("records");
+        return;
+      }
+      db.companyActivities.push(Object.assign({ id: uid(), created_at: new Date().toISOString() }, fields));
+      var savedOk = saveOrToast("저장했어요!");
+      wrap.querySelector("#companyStatus").textContent = savedOk ? "저장했어요! (" + fmtDateKo(fd.get("activity_date")) + ")" : "저장에 실패했어요. 다시 시도해주세요.";
+      wrap.reset();
+      wrap.querySelector('input[name="count"]').value = 1;
+      wrap.querySelector('input[name="amount_krw"]').value = 0;
+      wrap.querySelector('input[name="activity_date"]').value = todayISO();
+    });
+    return wrap;
+  }
+
+  function renderLeaveForm() {
+    var wrap = el('<div></div>');
+    var db = DB.get();
+    var editing = (state.editRecord && state.editRecord.type === "leave") ?
+      db.leaveRecords.filter(function (x) { return x.id === state.editRecord.id; })[0] : null;
+    // 수정 모드면 그 기록의 날짜를 그대로 대상으로 삼고, 아니면 평소처럼 오늘을 대상으로 한다.
+    var targetDate = editing ? editing.work_date : todayISO();
+    var existing = editing || db.leaveRecords.filter(function (l) { return l.work_date === targetDate; })[0];
+    var thresholdStr = db.settings.onTimeThreshold || "18:20";
+    wrap.innerHTML =
+      '<p class="small muted">' + fmtDateKo(targetDate) + (editing ? ' · ✎ 기록을 수정하고 있어요' : '') + '</p>' +
+      (editing ? '' :
+        '<button class="btn btn-primary btn-block" id="leaveNowBtn">지금 퇴근</button>' +
+        '<button class="btn btn-block" id="onTimeBtn" style="margin-top:8px;">정시퇴근 (' + thresholdStr + ')</button>') +
+      '<label class="field" style="margin-top:16px;">' + fieldLabel(editing ? "퇴근 시간" : "실제 퇴근시간 직접 입력") +
+        '<div style="display:flex; gap:8px;"><input class="input" type="time" id="manualTime" style="flex:1;" value="' + (editing ? editing.actual_time : "") + '" />' +
+        '<button class="btn' + (editing ? " btn-primary" : "") + '" id="manualSaveBtn">' + (editing ? "수정 완료" : "기록") + '</button></div></label>' +
+      '<label class="field">' + fieldLabel("메모 (선택)") + '<input class="input" type="text" id="leaveMemo" value="' + escapeHtml(existing ? existing.memo || "" : "") + '" /></label>' +
+      '<p class="tiny muted">휴일·휴가·출장은 "해당 없음"으로 표시하면 정시퇴근율 계산에서 제외돼요.</p>' +
+      (existing ? '<label class="field" style="margin-top:6px; display:flex; align-items:center; gap:8px;"><input type="checkbox" id="excludedBox" ' + (existing.excluded ? "checked" : "") + ' /> "해당 없음"으로 표시</label>' : '') +
+      (editing ? '<button type="button" class="btn btn-block" id="leaveCancelEdit" style="margin-top:10px;">취소</button>' : '');
+
+    function save(timeStr) {
+      var evaluated = evaluateLeaveTime(parseTimeStr(timeStr), getThreshold());
+      var db2 = DB.get();
+      var idx = db2.leaveRecords.findIndex(function (l) { return l.work_date === targetDate; });
+      var record = {
+        id: idx >= 0 ? db2.leaveRecords[idx].id : uid(), work_date: targetDate, actual_time: timeStr,
+        is_on_time: evaluated.isOnTime, delay_minutes: evaluated.delayMinutes,
+        excluded: idx >= 0 ? db2.leaveRecords[idx].excluded : false,
+        memo: wrap.querySelector("#leaveMemo").value
+      };
+      var excludedBoxEl = wrap.querySelector("#excludedBox");
+      if (excludedBoxEl) record.excluded = excludedBoxEl.checked;
+      if (idx >= 0) db2.leaveRecords[idx] = record; else db2.leaveRecords.push(record);
+      state.editRecord = null;
+      // 저장 직후 navigate()로 화면 전체가 다시 그려지므로, 별도 문단에 결과를 띄우면
+      // 화면이 바뀌기 전에 사라져 사용자가 볼 수 없다. 토스트 문구 자체에 결과를 담아서 보여준다.
+      saveOrToast(evaluated.isOnTime ? "정시퇴근으로 저장했어요!" : evaluated.delayMinutes + "분 지연 퇴근으로 저장했어요.");
+      if (editing) { navigate("records"); } else { navigate("quick", { quickTab: "company" }); }
+    }
+    var leaveNowBtn = wrap.querySelector("#leaveNowBtn");
+    if (leaveNowBtn) {
+      leaveNowBtn.addEventListener("click", function () {
+        var now = new Date();
+        save(pad2(now.getHours()) + ":" + pad2(now.getMinutes()));
+      });
+    }
+    var onTimeBtn = wrap.querySelector("#onTimeBtn");
+    if (onTimeBtn) {
+      onTimeBtn.addEventListener("click", function () { save(thresholdStr); });
+    }
+    wrap.querySelector("#manualSaveBtn").addEventListener("click", function () {
+      var v = wrap.querySelector("#manualTime").value;
+      if (!v) return;
+      save(v);
+    });
+    var cancelBtn = wrap.querySelector("#leaveCancelEdit");
+    if (cancelBtn) cancelBtn.addEventListener("click", cancelEdit);
+    var excludedBox = wrap.querySelector("#excludedBox");
+    if (excludedBox && !editing) {
+      excludedBox.addEventListener("change", function () {
+        var db3 = DB.get();
+        var rec = db3.leaveRecords.filter(function (l) { return l.work_date === targetDate; })[0];
+        if (rec) { rec.excluded = excludedBox.checked; saveOrToast("저장했어요"); }
+      });
+    }
+    return wrap;
+  }
+
+  var EXERCISE_BASE_TYPES = [["gym", "헬스"], ["golf", "골프"], ["walk", "산책"]];
+  var EXERCISE_BASE_LABELS = EXERCISE_BASE_TYPES.map(function (t) { return t[1]; });
+
+  function renderExerciseForm() {
+    var wrap = el('<div></div>');
+    var db = DB.get();
+    var date = todayISO();
+    var customTypes = (db.settings.customExerciseTypes || []).map(function (label) { return [label, label]; });
+    var types = EXERCISE_BASE_TYPES.concat(customTypes);
+    var exSnap = exerciseMonthlySnapshot(todayISO());
+    var weeklyTarget = db.targets.exerciseWeeklyTarget || 4;
+    function isDone(t) { return db.exerciseRecords.some(function (r) { return r.activity_date === date && r.exercise_type === t && r.completed; }); }
+    wrap.innerHTML =
+      '<div class="card" style="padding:12px 14px; margin-bottom:14px; background:var(--color-accent-light);">' +
+        '<div class="tiny muted">' + exSnap.monthLabel + ' 누적 운동 횟수</div>' +
+        '<div style="font-size:20px; font-weight:800; margin-top:2px;">' + exSnap.count + '회</div>' +
+        '<div class="tiny muted" style="margin-top:4px;">주당 목표 ' + weeklyTarget + '회</div>' +
+      '</div>' +
+      '<p class="small muted">' + fmtDateKo(date) + ' · 오늘 실시한 운동을 모두 눌러주세요</p>' +
+      '<div class="row2" style="grid-template-columns:repeat(3,1fr); gap:8px;" id="exBtns">' +
+        types.map(function (t) {
+          var isCustom = EXERCISE_BASE_TYPES.every(function (b) { return b[0] !== t[0]; });
+          return '<button type="button" class="tile" data-type="' + escapeHtml(t[0]) + '" style="align-items:center; text-align:center; position:relative;' + (isDone(t[0]) ? "border:1px solid var(--color-brand); background:var(--color-accent-light);" : "") + '">' +
+            (isCustom ? '<span class="ex-del" data-del="' + escapeHtml(t[0]) + '" title="삭제">×</span>' : "") +
+            '<span class="t-label">' + (isDone(t[0]) ? "✓ " : "") + escapeHtml(t[1]) + '</span></button>';
+        }).join("") +
+        '<button type="button" class="btn" id="exAddBtn" style="border-style:dashed; color:var(--color-ink-muted); justify-content:center;">+ 직접 추가</button>' +
+      '</div>' +
+      '<div id="exAddRow" style="display:none; gap:8px; margin-top:10px;">' +
+        '<input class="input" type="text" id="exAddInput" placeholder="운동 이름 (예: 요가)" maxlength="12" style="flex:1;" />' +
+        '<button type="button" class="btn btn-primary" id="exAddConfirm" style="padding:10px 16px;">추가</button>' +
+      '</div>' +
+      '<p class="tiny muted" style="margin-top:12px;">목표는 설정 화면에서 조정할 수 있어요.</p>';
+
+    function logType(type) {
+      var db2 = DB.get();
+      var existing = db2.exerciseRecords.filter(function (r) { return r.activity_date === date && r.exercise_type === type; })[0];
+      if (existing) { existing.completed = true; }
+      else { db2.exerciseRecords.push({ id: uid(), activity_date: date, exercise_type: type, completed: true }); }
+      return db2;
+    }
+
+    wrap.querySelectorAll("#exBtns button[data-type]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        logType(btn.getAttribute("data-type"));
+        saveOrToast("저장했어요!");
+        navigate("quick", { quickTab: "exercise" });
+      });
+    });
+
+    wrap.querySelectorAll(".ex-del").forEach(function (span) {
+      span.addEventListener("click", function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        var type = span.getAttribute("data-del");
+        if (!confirm('"' + type + '" 운동 종류를 삭제할까요? 이미 기록된 운동 기록은 그대로 남아있어요.')) return;
+        var db2 = DB.get();
+        db2.settings.customExerciseTypes = (db2.settings.customExerciseTypes || []).filter(function (x) { return x !== type; });
+        saveOrToast("삭제했어요");
+        navigate("quick", { quickTab: "exercise" });
+      });
+    });
+
+    var addBtn = wrap.querySelector("#exAddBtn");
+    var addRow = wrap.querySelector("#exAddRow");
+    var addInput = wrap.querySelector("#exAddInput");
+    addBtn.addEventListener("click", function () {
+      addBtn.style.display = "none";
+      addRow.style.display = "flex";
+      addInput.focus();
+    });
+    function commitCustomType() {
+      var name = addInput.value.trim();
+      if (!name) { addInput.focus(); return; }
+      if (EXERCISE_BASE_LABELS.indexOf(name) !== -1) { showToast("이미 있는 운동 종류예요"); return; }
+      var db2 = DB.get();
+      if (!db2.settings.customExerciseTypes) db2.settings.customExerciseTypes = [];
+      if (db2.settings.customExerciseTypes.indexOf(name) === -1) { db2.settings.customExerciseTypes.push(name); }
+      logType(name);
+      saveOrToast("추가했어요!");
+      navigate("quick", { quickTab: "exercise" });
+    }
+    wrap.querySelector("#exAddConfirm").addEventListener("click", commitCustomType);
+    addInput.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); commitCustomType(); } });
+
+    return wrap;
+  }
+
+  function renderFamilyForm() {
+    var wrap = el('<form></form>');
+    var editing = (state.editRecord && state.editRecord.type === "family") ?
+      DB.get().familyRecords.filter(function (x) { return x.id === state.editRecord.id; })[0] : null;
+    var selected = editing ? editing.family_type : "parents";
+    wrap.innerHTML =
+      (editing ? '<p class="small muted" style="margin:0 0 10px;">✎ 기록을 수정하고 있어요.</p>' : '') +
+      '<label class="field">' + fieldLabel("대상") +
+        '<div class="chip-group" id="famChips">' +
+          '<button type="button" class="chip' + (selected === "parents" ? " selected" : "") + '" data-v="parents">부모님</button>' +
+          '<button type="button" class="chip' + (selected === "star" ? " selected" : "") + '" data-v="star">Star</button>' +
+        '</div></label>' +
+      '<label class="field">' + fieldLabel("날짜") + '<input class="input" type="date" name="activity_date" value="' + (editing ? editing.activity_date : todayISO()) + '" required /></label>' +
+      '<label class="field" style="display:flex; align-items:center; gap:8px;"><input type="checkbox" name="contacted" ' + (editing ? (editing.contacted ? "checked" : "") : "checked") + ' /> 연락/교류했음</label>' +
+      '<label class="field">' + fieldLabel("교류 시간 (분)") + '<input class="input" type="number" name="minutes_spent" min="0" value="' + (editing ? editing.minutes_spent : 0) + '" /></label>' +
+      '<label class="field">' + fieldLabel("메모 (선택)") + '<textarea class="input" name="memo">' + (editing ? escapeHtml(editing.memo || "") : "") + '</textarea></label>' +
+      '<button class="btn btn-primary btn-block" type="submit">' + (editing ? "수정 완료" : "저장") + '</button>' +
+      (editing ? '<button type="button" class="btn btn-block" id="familyCancelEdit" style="margin-top:8px;">취소</button>' : '');
+    wrap.querySelectorAll("#famChips .chip").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        selected = chip.getAttribute("data-v");
+        wrap.querySelectorAll("#famChips .chip").forEach(function (c) { c.classList.toggle("selected", c === chip); });
+      });
+    });
+    if (editing) wrap.querySelector("#familyCancelEdit").addEventListener("click", cancelEdit);
+    wrap.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var fd = new FormData(wrap);
+      var db = DB.get();
+      var fields = {
+        family_type: selected, activity_date: fd.get("activity_date"),
+        contacted: fd.get("contacted") === "on", minutes_spent: Math.max(0, Number(fd.get("minutes_spent")) || 0),
+        memo: String(fd.get("memo") || "")
+      };
+      if (editing) {
+        var target = db.familyRecords.filter(function (x) { return x.id === editing.id; })[0];
+        if (target) Object.assign(target, fields);
+        state.editRecord = null;
+        saveOrToast("수정했어요!");
+        navigate("records");
+        return;
+      }
+      db.familyRecords.push(Object.assign({ id: uid() }, fields));
+      saveOrToast("저장했어요!");
+      navigate("quick", { quickTab: "family" });
+    });
+    return wrap;
+  }
+
+  function renderSideProjectForm() {
+    var wrap = el('<div></div>');
+    var db = DB.get();
+    var projects = db.sideProjects;
+    wrap.innerHTML =
+      '<div class="tabbar">' +
+        '<button class="tabbtn' + (!state.spTab || state.spTab === "log" ? " active" : "") + '" data-tab="log">진행률 기록</button>' +
+        '<button class="tabbtn' + (state.spTab === "manage" ? " active" : "") + '" data-tab="manage">프로젝트 관리</button>' +
+      '</div><div id="spBody"></div>';
+    wrap.querySelectorAll(".tabbtn").forEach(function (b) {
+      b.addEventListener("click", function () { state.spTab = b.getAttribute("data-tab"); navigate("quick", { quickTab: "side_project" }); });
+    });
+    var body = wrap.querySelector("#spBody");
+    if (state.spTab === "manage") {
+      body.innerHTML =
+        '<form id="newProjectForm">' +
+          '<label class="field">' + fieldLabel("프로젝트 이름") + '<input class="input" type="text" name="name" required /></label>' +
+          '<button class="btn btn-primary btn-block" type="submit">추가</button>' +
+        '</form>' +
+        '<div style="margin-top:14px;">' +
+          (projects.length ? projects.map(function (p) {
+            return '<div class="card" style="padding:12px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:8px;">' +
+              '<div><b>' + escapeHtml(p.name) + '</b> <span class="tiny muted">(' + (p.status === "stopped" ? "중단" : "진행중") + ' · 현재 ' + p.current_progress + '점)</span></div>' +
+              '<div style="display:flex; gap:6px; flex-shrink:0;">' +
+                '<button type="button" class="btn" style="padding:5px 10px; font-size:12px;" data-toggle="' + p.id + '">' + (p.status === "stopped" ? "재개" : "중단") + '</button>' +
+                '<button type="button" class="btn btn-danger" style="padding:5px 10px; font-size:12px;" data-del="' + p.id + '">삭제</button>' +
+              '</div></div>';
+          }).join("") : '<p class="small muted">등록된 프로젝트가 없어요.</p>') +
+        '</div>';
+      body.querySelector("#newProjectForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var name = new FormData(e.target).get("name");
+        if (!String(name || "").trim()) return;
+        db.sideProjects.push({ id: uid(), name: String(name).trim(), status: "in_progress", current_progress: 0, last_updated_at: todayISO() });
+        saveOrToast("프로젝트를 추가했어요");
+        navigate("quick", { quickTab: "side_project" });
+      });
+      body.querySelectorAll("button[data-toggle]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var proj = db.sideProjects.filter(function (p) { return p.id === btn.getAttribute("data-toggle"); })[0];
+          if (!proj) return;
+          proj.status = proj.status === "stopped" ? "in_progress" : "stopped";
+          saveOrToast(proj.status === "stopped" ? "프로젝트를 중단으로 표시했어요" : "프로젝트를 재개했어요");
+          navigate("quick", { quickTab: "side_project" });
+        });
+      });
+      body.querySelectorAll("button[data-del]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var pid = btn.getAttribute("data-del");
+          var proj = db.sideProjects.filter(function (p) { return p.id === pid; })[0];
+          if (!proj) return;
+          if (!confirm('"' + proj.name + '" 프로젝트와 관련 진행률 기록을 모두 삭제할까요?')) return;
+          db.sideProjects = db.sideProjects.filter(function (p) { return p.id !== pid; });
+          db.projectProgressLogs = db.projectProgressLogs.filter(function (l) { return l.project_id !== pid; });
+          saveOrToast("삭제했어요");
+          navigate("quick", { quickTab: "side_project" });
+        });
+      });
+    } else {
+      // 진행률 로그는 "직전 값 -> 새 값" 체인으로 연결돼 있어서, 과거 로그를 아무거나 고치면
+      // 그 뒤로 이어지는 로그들의 progress_before와 어긋나 버린다. 그래서 수정은 프로젝트별
+      // 가장 최근(마지막) 로그일 때만 허용하고, 아니면 조용히 새 입력 폼으로 돌아간다.
+      var editing = (state.editRecord && state.editRecord.type === "side_project") ?
+        db.projectProgressLogs.filter(function (x) { return x.id === state.editRecord.id; })[0] : null;
+      if (editing) {
+        var logsForProject = db.projectProgressLogs.filter(function (l) { return l.project_id === editing.project_id; });
+        var isLatest = logsForProject.length > 0 && logsForProject[logsForProject.length - 1].id === editing.id;
+        if (!isLatest) editing = null;
+      }
+      if (!projects.length) {
+        body.innerHTML = '<div class="empty-note">먼저 "프로젝트 관리" 탭에서 프로젝트를 추가해주세요.</div>';
+      } else {
+        var editingProject = editing ? db.sideProjects.filter(function (p) { return p.id === editing.project_id; })[0] : null;
+        body.innerHTML =
+          (editing ? '<p class="small muted" style="margin:0 0 10px;">✎ ' + (editingProject ? escapeHtml(editingProject.name) : "") + '의 가장 최근 진행률 기록을 수정하고 있어요.</p>' : '') +
+          '<form id="progressForm">' +
+            (editing ?
+              '<label class="field">' + fieldLabel("프로젝트") + '<input class="input" type="text" value="' + (editingProject ? escapeHtml(editingProject.name) : "") + '" disabled /></label>'
+              :
+              '<label class="field">' + fieldLabel("프로젝트") + '<select class="input" name="project_id">' +
+                projects.map(function (p) { return '<option value="' + p.id + '">' + escapeHtml(p.name) + ' (현재 ' + p.current_progress + '점)</option>'; }).join("") +
+              '</select></label>'
+            ) +
+            '<label class="field">' + fieldLabel("날짜") + '<input class="input" type="date" name="logged_date" value="' + (editing ? editing.logged_date : todayISO()) + '" /></label>' +
+            '<label class="field">' + fieldLabel("새 진행률 (누적 점수)") + '<input class="input" type="number" name="new_progress" value="' + (editing ? editing.progress_after : "") + '" required /></label>' +
+            '<button class="btn btn-primary btn-block" type="submit">' + (editing ? "수정 완료" : "저장") + '</button>' +
+            (editing ? '<button type="button" class="btn btn-block" id="spCancelEdit" style="margin-top:8px;">취소</button>' : '') +
+          '</form>';
+        if (editing) body.querySelector("#spCancelEdit").addEventListener("click", cancelEdit);
+        body.querySelector("#progressForm").addEventListener("submit", function (e) {
+          e.preventDefault();
+          var fd = new FormData(e.target);
+          var rawVal = Number(fd.get("new_progress"));
+          if (!isFinite(rawVal)) { showToast("올바른 진행률 숫자를 입력해주세요"); return; }
+          var newVal = Math.max(0, rawVal); // 진행률(누적 점수)에 음수가 저장되지 않도록 보정
+          if (editing) {
+            var log = db.projectProgressLogs.filter(function (x) { return x.id === editing.id; })[0];
+            var project = db.sideProjects.filter(function (p) { return p.id === editing.project_id; })[0];
+            if (!log || !project) { state.editRecord = null; navigate("records"); return; }
+            log.logged_date = fd.get("logged_date");
+            log.progress_after = newVal;
+            project.current_progress = newVal;
+            project.last_updated_at = fd.get("logged_date");
+            state.editRecord = null;
+            saveOrToast("수정했어요!");
+            navigate("records");
+            return;
+          }
+          var pid = fd.get("project_id");
+          var project2 = db.sideProjects.filter(function (p) { return p.id === pid; })[0];
+          if (!project2) return;
+          db.projectProgressLogs.push({ id: uid(), project_id: pid, logged_date: fd.get("logged_date"), progress_before: project2.current_progress, progress_after: newVal });
+          project2.current_progress = newVal;
+          project2.last_updated_at = fd.get("logged_date");
+          saveOrToast("저장했어요!");
+          navigate("quick", { quickTab: "side_project" });
+        });
+      }
+    }
+    return wrap;
+  }
+
+  function renderIncomeForm() {
+    var wrap = el('<form></form>');
+    var editing = (state.editRecord && state.editRecord.type === "extra_income") ?
+      DB.get().extraIncomes.filter(function (x) { return x.id === state.editRecord.id; })[0] : null;
+    var cum = incomeCumulativeAsOf(todayISO());
+    var target = DB.get().targets.incomeMonthlyTargetKrw;
+    wrap.innerHTML =
+      (editing ? '' : '<div class="card" style="padding:12px 14px; margin-bottom:14px; background:var(--color-accent-light);">' +
+        '<div class="tiny muted">' + cum.year + '년 누적 입력 금액 (1~' + cum.monthNum + '월)</div>' +
+        '<div style="font-size:20px; font-weight:800; margin-top:2px;">' + fmtWon(cum.cumulativeTotal) + '</div>' +
+        '<div class="tiny muted" style="margin-top:4px;">월평균 ' + fmtWon(Math.round(cum.avgMonthly)) + ' · 목표 ' + fmtWon(target) + '</div>' +
+      '</div>') +
+      (editing ? '<p class="small muted" style="margin:0 0 10px;">✎ 기록을 수정하고 있어요.</p>' : '') +
+      '<label class="field">' + fieldLabel("발생일") + '<input class="input" type="date" name="occurred_date" value="' + (editing ? editing.occurred_date : todayISO()) + '" required /></label>' +
+      '<label class="field">' + fieldLabel("금액 (원)") + '<input class="input" type="number" name="amount_krw" data-money="1" min="0" step="1000" value="' + (editing ? editing.amount_krw : "") + '" required /><span class="amount-hint"></span></label>' +
+      '<label class="field">' + fieldLabel("메모 (선택)") + '<input class="input" type="text" name="memo" value="' + (editing ? escapeHtml(editing.memo || "") : "") + '" /></label>' +
+      '<button class="btn btn-primary btn-block" type="submit">' + (editing ? "수정 완료" : "저장") + '</button>' +
+      (editing ? '<button type="button" class="btn btn-block" id="incomeCancelEdit" style="margin-top:8px;">취소</button>' : '');
+    if (editing) wrap.querySelector("#incomeCancelEdit").addEventListener("click", cancelEdit);
+    wrap.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var fd = new FormData(wrap);
+      var db = DB.get();
+      var fields = { occurred_date: fd.get("occurred_date"), amount_krw: Math.max(0, Number(fd.get("amount_krw")) || 0), memo: String(fd.get("memo") || "") };
+      if (editing) {
+        var target2 = db.extraIncomes.filter(function (x) { return x.id === editing.id; })[0];
+        if (target2) Object.assign(target2, fields);
+        state.editRecord = null;
+        saveOrToast("수정했어요!");
+        navigate("records");
+        return;
+      }
+      db.extraIncomes.push(Object.assign({ id: uid() }, fields));
+      saveOrToast("저장했어요!");
+      navigate("quick", { quickTab: "extra_income" });
+    });
+    return wrap;
+  }
+
+  function renderSelfTimeForm() {
+    var wrap = el('<form></form>');
+    var editing = (state.editRecord && state.editRecord.type === "self_time") ?
+      DB.get().selfTimeRecords.filter(function (x) { return x.id === state.editRecord.id; })[0] : null;
+    var snap = selfTimeMonthlySnapshot(todayISO());
+    var hoursTarget = DB.get().targets.selfTimeMonthlyHoursTarget || 40;
+    wrap.innerHTML =
+      (editing ? '' : '<div class="card" style="padding:12px 14px; margin-bottom:14px; background:var(--color-accent-light);">' +
+        '<div class="tiny muted">' + snap.monthLabel + ' 누적 셀프케어</div>' +
+        '<div style="font-size:20px; font-weight:800; margin-top:2px;">' + snap.totalHours + '시간</div>' +
+        '<div class="tiny muted" style="margin-top:4px;">월 목표 ' + hoursTarget + '시간 · 누적 비용 ' + fmtWon(snap.totalAmount) + '</div>' +
+      '</div>') +
+      (editing ? '<p class="small muted" style="margin:0 0 10px;">✎ 기록을 수정하고 있어요.</p>' : '') +
+      '<label class="field">' + fieldLabel("날짜") + '<input class="input" type="date" name="start_date" value="' + (editing ? editing.start_date : todayISO()) + '" required /></label>' +
+      '<label class="field">' + fieldLabel("활동") + '<input class="input" type="text" name="category" placeholder="예: 휴가, 여행, 헤어" value="' + (editing ? escapeHtml(editing.category || "") : "") + '" required /></label>' +
+      '<div class="row2">' +
+        '<label class="field">' + fieldLabel("활동 시간 (시간)") + '<input class="input" type="number" name="duration_hours" min="0" step="0.5" value="' + (editing ? editing.duration_hours : 1) + '" required /></label>' +
+        '<label class="field">' + fieldLabel("비용 (원)") + '<input class="input" type="number" name="amount_krw" data-money="1" min="0" step="1000" value="' + (editing ? editing.amount_krw : 0) + '" /><span class="amount-hint"></span></label>' +
+      '</div>' +
+      '<label class="field">' + fieldLabel("만족도 (1~5)") + '<input class="input" type="range" name="satisfaction" min="1" max="5" value="' + (editing ? editing.satisfaction || 4 : 4) + '" /></label>' +
+      '<label class="field">' + fieldLabel("메모 (선택)") + '<textarea class="input" name="memo">' + (editing ? escapeHtml(editing.memo || "") : "") + '</textarea></label>' +
+      '<button class="btn btn-primary btn-block" type="submit">' + (editing ? "수정 완료" : "저장") + '</button>' +
+      (editing ? '<button type="button" class="btn btn-block" id="selfTimeCancelEdit" style="margin-top:8px;">취소</button>' : '');
+    if (editing) wrap.querySelector("#selfTimeCancelEdit").addEventListener("click", cancelEdit);
+    wrap.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var fd = new FormData(wrap);
+      var db = DB.get();
+      var fields = {
+        start_date: fd.get("start_date"), category: String(fd.get("category") || ""),
+        duration_hours: Math.max(0, Number(fd.get("duration_hours")) || 0),
+        amount_krw: Math.max(0, Number(fd.get("amount_krw")) || 0),
+        satisfaction: Number(fd.get("satisfaction")) || 4, memo: String(fd.get("memo") || "")
+      };
+      if (editing) {
+        var target = db.selfTimeRecords.filter(function (x) { return x.id === editing.id; })[0];
+        if (target) Object.assign(target, fields);
+        state.editRecord = null;
+        saveOrToast("수정했어요!");
+        navigate("records");
+        return;
+      }
+      db.selfTimeRecords.push(Object.assign({ id: uid() }, fields));
+      saveOrToast("저장했어요!");
+      navigate("quick", { quickTab: "self_time" });
+    });
+    return wrap;
+  }
+
+  /* ============================== 생각 기록: 라이프 코치 피드백 ==============================
+   * 이 앱은 서버/로그인 없이 완전히 오프라인으로 동작하도록 설계됐다. 기본값은 여전히
+   * 로컬(오프라인) 규칙 기반 피드백으로, 입력한 글에 담긴 키워드에 따라 Brian Tracy의 대표
+   * 저서·강연에서 널리 알려진 원칙(아래 각 버킷 주석 참고: Eat That Frog!, Goals!, No Excuses!,
+   * Maximum Achievement, The Way to Wealth, Million Dollar Habits 등)을 바탕으로 미리 준비한
+   * 문장 중 하나를 골라 보여준다. (실제 그의 발언을 그대로 인용한 것이 아니라, 잘 알려진
+   * 원칙을 참고해 재구성한 문장이며, 각 문장 옆에 참고한 책/개념을 출처로 함께 표시한다.)
+   *
+   * 설정 화면에서 Anthropic API 키를 넣어두면, 이 로컬 로직 대신 실제 Claude API를 호출해서
+   * 그 응답을 그대로 피드백으로 쓴다(callCoachLLM 참고 - 서버 없이 브라우저에서 직접 호출).
+   * 키가 없거나 호출이 실패하면 항상 아래 로컬 로직으로 자동 대체되므로, 오프라인에서도 이
+   * 기능은 계속 동작한다.
+   *
+   * 매칭 로직: 예전에는 "글에 어떤 버킷의 키워드가 하나라도 있으면 그 시점에서 확정"하는
+   * 방식이라, 순서상 앞에 있는 버킷이 자주 이겼다. 지금은 모든 버킷에 대해 키워드가 몇 개나
+   * 일치하는지 점수를 매겨서 가장 많이 겹치는 버킷을 고르고(더 정교한 매칭), 점수가 동률일
+   * 때만 아래 PRIORITY 순서로 정한다. 또한 같은 이야기를 반복해서 남길 때 매번 똑같은 문장이
+   * 나오지 않도록, 최근에 이미 받은 문장은 가능하면 피해서 고른다.
+   */
+  var COACH_NAME = "Brian Tracy";
+  var COACH_FEEDBACK_POOL = {
+    // 위기·감정적 어려움: <긍정적 정신 자세(Positive Mental Attitude)>, <Maximum Achievement>
+    stress: [
+      { text: "브라이언 트레이시는 힘든 상황일수록 통제할 수 있는 것에만 집중하라고 강조해요. 지금 당장 할 수 있는 아주 작은 행동 하나만 정해보는 건 어떨까요.", source: "긍정적 정신 자세" },
+      { text: "트레이시의 '긍정적 정신 자세' 원칙처럼, 오늘의 어려움도 결국 배움의 재료가 돼요. 잠시 쉬고, 내일은 감당할 수 있는 만큼만 계획해보세요.", source: "긍정적 정신 자세" },
+      { text: "실패와 좌절도 성공으로 가는 과정의 일부라는 게 트레이시의 핵심 메시지예요. 오늘 느낀 감정을 인정하는 것부터가 회복의 시작이에요.", source: "Maximum Achievement" },
+      { text: "트레이시는 위기의 순간일수록 감정을 잠시 내려놓고 '지금 이 상황에서 사실은 무엇인가'부터 냉정하게 정리해보라고 말해요.", source: "Maximum Achievement" },
+      { text: "트레이시는 스트레스가 클수록 몸을 움직이고 충분히 쉬는 게 가장 먼저라고 말해요. 오늘은 판단을 미루고 회복부터 챙겨보세요.", source: "긍정적 정신 자세" }
+    ],
+    // 두려움·자신감 부족·실패 걱정: <Maximum Achievement>의 '컴포트 존(Comfort Zone)' 개념
+    fear: [
+      { text: "트레이시는 '안전지대(Comfort Zone)'를 벗어나는 순간 진짜 성장이 시작된다고 말해요. 지금 느끼는 두려움은 성장하고 있다는 신호일 수 있어요.", source: "Maximum Achievement" },
+      { text: "실패에 대한 두려움은 타고난 게 아니라 학습된 감정일 뿐이라는 게 트레이시의 관점이에요. 아주 작은 도전부터 다시 시작해보세요.", source: "Maximum Achievement" },
+      { text: "트레이시는 두려움을 없애는 가장 빠른 방법은 두려워하는 그 일을 직접 해보는 것이라고 말해요. 완벽하지 않아도 일단 시작해보세요.", source: "Maximum Achievement" },
+      { text: "트레이시는 자신감도 근육처럼 작은 성공 경험을 반복하면서 키워진다고 말해요. 오늘 느낀 걱정도 다음 도전을 위한 준비 과정이에요.", source: "Maximum Achievement" }
+    ],
+    // 인생의 큰 결정(퇴사·이직·창업 등): <Eat That Frog!>의 '제로베이스 사고',
+    // <TurboStrategy>의 위험 분석, <Goals!>의 목적 명확화
+    decision: [
+      { text: "트레이시가 말하는 '제로베이스 사고'를 이런 큰 결정에도 적용해보세요. '지금 이걸 몰랐다면, 지금 조건에서 다시 이 선택을 하겠는가?' 답이 분명한 '그렇다'라면 계속 가고, 아니라면 다른 길을 고민해볼 신호예요.", source: "Eat That Frog!" },
+      { text: "트레이시는 큰 결정을 내리기 전 이 선택이 잘됐을 때와 잘 안 됐을 때 각각 무엇을 배우고 얻게 될지 구체적으로 적어보라고 말해요. 걱정만으로는 답이 안 나와요.", source: "TurboStrategy" },
+      { text: "퇴사든 창업이든, 트레이시는 '무엇을 위해 이 선택을 하려는가'부터 명확히 하라고 말해요. 목적이 분명해지면 방법은 그 다음에 보여요.", source: "Goals!" },
+      { text: "트레이시는 두려움 때문에 미뤄지는 결정일수록, 최악의 시나리오를 구체적인 문장으로 적어보면 오히려 감당할 만하다는 걸 깨닫게 된다고 말해요.", source: "Maximum Achievement" },
+      { text: "되돌리기 어려운 결정일수록 트레이시는 정보는 충분히 모으되, 고민 자체에 끝없이 머물지 말고 '언제까지 결정한다'는 기한을 스스로 정해두라고 조언해요.", source: "Eat That Frog!" }
+    ],
+    // 미루기: <먼저 이 놈부터 해치워라(Eat That Frog!)> — 가장 부담스러운 일을 가장 먼저 처리
+    procrastination: [
+      { text: "트레이시의 대표 원칙 '이트 댓 프로그(Eat That Frog)'는 가장 하기 싫은 일을 아침에 가장 먼저 처리하라고 말해요. 내일은 미루고 있는 그 일을 딱 10분만이라도 먼저 시작해보세요.", source: "Eat That Frog!" },
+      { text: "미루는 일에 대해 트레이시는 '개구리 두 마리를 먹어야 한다면 더 못생긴 것부터 먹어라'라고 비유해요. 가장 부담스러운 일부터 해치우면 나머지는 훨씬 가벼워져요.", source: "Eat That Frog!" },
+      { text: "트레이시는 미루는 일일수록 시작하기 전이 가장 힘들다고 말해요. 일단 5분만 시작해보면 생각보다 수월하게 이어갈 수 있어요.", source: "Eat That Frog!" },
+      { text: "트레이시가 말하는 '제로베이스 사고'를 써보세요. '이 일을 지금 몰랐다면 다시 시작하겠는가?' 아니라면 그만두거나, 지금 당장 처리해버리는 거예요.", source: "Eat That Frog!" },
+      { text: "트레이시는 전날 밤에 다음 날 할 일을 미리 정해두는 것만으로도 미루는 습관의 절반은 사라진다고 말해요. 오늘 밤 내일의 '개구리'를 미리 정해보세요.", source: "Eat That Frog!" }
+    ],
+    // 우선순위·바쁨: ABCDE 기법 + 80/20 법칙(파레토), 싱글 핸들링 — <Eat That Frog!> / <Time Power>
+    priority: [
+      { text: "할 일이 많을 땐 트레이시의 ABCDE 기법을 써보세요. 오늘 할 일 중 가장 중요한 것 하나에만 'A'를 붙이고, 그것부터 끝내는 거예요.", source: "Eat That Frog!" },
+      { text: "트레이시가 강조하는 80/20 법칙처럼, 성과의 80%는 가장 중요한 20%의 일에서 나와요. 지금 하고 있는 일 중 정말 중요한 게 무엇인지 다시 골라보세요.", source: "Time Power" },
+      { text: "바쁠수록 '싱글 핸들링(한 번에 한 가지 일만 하기)'이 효과적이라는 게 트레이시의 조언이에요. 지금 이 순간엔 딱 한 가지 일에만 집중해보세요.", source: "Eat That Frog!" },
+      { text: "트레이시는 하루를 시작하기 전 15분만 계획에 써도 실행 시간이 훨씬 줄어든다고 말해요. 내일 아침엔 딱 15분만 계획부터 세워보세요.", source: "Time Power" }
+    ],
+    // 목표·다짐: 종이에 적기, 기한 정하기, 작은 단계로 쪼개기 — <Goals!>
+    goal: [
+      { text: "목표를 종이에 적고 구체적인 기한을 정하라는 게 트레이시의 대표적인 조언이에요. 오늘 떠올린 목표를 날짜와 함께 다시 적어보세요.", source: "Goals!" },
+      { text: "트레이시는 명확한 목표가 있는 사람이 그렇지 않은 사람보다 훨씬 빠르게 성장한다고 말해요. 오늘의 다짐을 구체적인 실행 계획으로 한 번 더 다듬어보세요.", source: "Goals!" },
+      { text: "트레이시의 목표 설정법처럼, 큰 목표는 작은 단계로 쪼갤수록 실현 가능성이 높아져요. 오늘 떠올린 목표를 이번 주 안에 할 수 있는 작은 행동으로 나눠보세요.", source: "Goals!" },
+      { text: "트레이시는 목표를 매일 아침저녁으로 소리 내어 읽는 것만으로도 뇌가 그 목표에 맞춰 행동을 찾기 시작한다고 말해요(정신적 청사진). 오늘의 다짐도 한 번 소리 내어 읽어보세요.", source: "Goals!" }
+    ],
+    // 돈·재정: <The Way to Wealth>, <Million Dollar Habits>
+    money: [
+      { text: "트레이시는 '먼저 나 자신에게 지불하라(Pay Yourself First)'는 원칙을 강조해요. 수입의 일정 비율을 가장 먼저 저축으로 떼어두는 습관부터 시작해보세요.", source: "The Way to Wealth" },
+      { text: "트레이시는 부(富)도 우연이 아니라 습관이 쌓인 결과라고 말해요. 오늘의 작은 재정적 선택 하나도 그 습관의 일부예요.", source: "Million Dollar Habits" },
+      { text: "돈에 대한 불안이 클수록, 트레이시는 통제할 수 있는 지출부터 하나씩 점검하라고 조언해요. 큰 그림보다 오늘 당장 줄일 수 있는 항목 하나면 충분해요.", source: "The Way to Wealth" },
+      { text: "트레이시는 경제적 자유도 다른 목표처럼 종이에 적고 구체적인 기한과 계획을 세워야 이뤄진다고 말해요.", source: "The Way to Wealth" }
+    ],
+    // 습관·자기 훈련: <No Excuses! The Power of Self-Discipline>
+    habit: [
+      { text: "트레이시는 자기 훈련(self-discipline)이 성공의 가장 중요한 자질이라고 말해요. 작은 유혹 하나를 이겨낸 오늘도 그 훈련의 일부예요.", source: "No Excuses!" },
+      { text: "습관은 반복을 통해 자동화된다는 게 트레이시의 설명이에요. 오늘 하려던 행동을 내일도 같은 시간에 한 번 더 반복해보세요.", source: "No Excuses!" },
+      { text: "트레이시는 '변명 없음(No Excuses)'을 강조하지만, 완벽하게 못 했다고 자책하기보다 다시 시작하는 것 자체가 자기 훈련이라고 말해요.", source: "No Excuses!" }
+    ],
+    // 인간관계·가족: <Goals!>의 '삶의 수레바퀴(Wheel of Life)' 중 인간관계 영역
+    relationship: [
+      { text: "트레이시가 목표 설정에서 말하는 '삶의 수레바퀴(Wheel of Life)'에는 인간관계도 중요한 한 축이에요. 오늘 나눈 이 마음도 균형 잡힌 삶의 일부예요.", source: "Goals!" },
+      { text: "트레이시는 성공한 삶의 핵심 중 하나로 좋은 인간관계를 꼽아요. 오늘처럼 관계를 돌보는 시간도 소중한 투자예요.", source: "Goals!" },
+      { text: "관계에서 생긴 서운함도, 트레이시가 강조하는 솔직하고 직접적인 소통으로 풀어가는 게 가장 빠른 길이에요.", source: "Maximum Achievement" }
+    ],
+    // 건강·체력: <Goals!>의 '삶의 수레바퀴' 중 신체 건강 영역
+    health: [
+      { text: "트레이시가 말하는 '삶의 수레바퀴'에서 신체 건강은 다른 모든 영역의 기반이 되는 영역이에요. 오늘 몸을 챙긴 것도 결국 전체 삶의 균형을 위한 투자예요.", source: "Goals!" },
+      { text: "트레이시는 최고의 컨디션을 유지하는 게 최고의 생산성으로 이어진다고 말해요. 오늘 몸이 보내는 신호에 조금 더 귀 기울여보세요.", source: "Maximum Achievement" },
+      { text: "꾸준한 운동은 트레이시가 강조하는 자기 훈련(self-discipline)을 가장 쉽게 연습할 수 있는 시작점이기도 해요.", source: "No Excuses!" }
+    ],
+    // 성취·감사·좋은 하루: 작은 성취 축하 + 복리 효과
+    positive: [
+      { text: "트레이시는 작은 성취를 자주 축하하는 게 동기 부여의 핵심이라고 말해요. 오늘의 성취를 충분히 즐기세요.", source: "Maximum Achievement" },
+      { text: "좋은 하루를 보내셨네요. 트레이시가 강조하는 '복리 효과' 원칙처럼, 오늘 같은 좋은 습관이 쌓이면 큰 변화로 이어져요.", source: "Million Dollar Habits" },
+      { text: "트레이시는 자기 훈련(self-discipline)이야말로 성공의 가장 중요한 자질이라고 말해요. 오늘처럼 해낸 스스로를 충분히 칭찬해주세요.", source: "No Excuses!" },
+      { text: "트레이시는 성공한 사람일수록 하루를 마무리하며 오늘 잘한 일 세 가지를 되짚어본다고 말해요. 오늘의 이 기록도 그중 하나예요.", source: "Maximum Achievement" }
+    ],
+    // 배움·독서: 지속적 자기계발
+    learning: [
+      { text: "트레이시는 하루 30~60분씩 관련 분야를 공부하는 게 최고의 자기계발이라고 강조해요. 오늘 배운 것을 내일도 조금씩 이어가 보세요.", source: "Maximum Achievement" },
+      { text: "'지속적인 학습이 최고의 경쟁력'이라는 게 트레이시의 핵심 메시지예요. 오늘 읽거나 배운 내용을 한 줄로 정리해보는 것도 좋아요.", source: "Maximum Achievement" },
+      { text: "트레이시는 성공한 사람들의 공통점으로 꾸준한 독서와 자기계발을 꼽아요. 오늘의 배움도 그 자산 중 하나예요.", source: "Maximum Achievement" }
+    ],
+    // 그 외 전부: <Goals!>의 '삶의 수레바퀴' — 이 앱의 라이프 헥사곤도 그 균형 원칙에서 착안했다
+    "default": [
+      { text: "트레이시는 하루 중 조용히 자신을 돌아보는 시간이 최고의 자기계발 습관이라고 말해요. 오늘도 그 시간을 잘 가지셨어요.", source: "Maximum Achievement" },
+      { text: "매일 목표와 생각을 기록하는 건 트레이시가 강조하는 '자기 성찰' 습관과 맞닿아 있어요. 꾸준히 남겨보세요.", source: "Goals!" },
+      { text: "트레이시의 원칙처럼, 하루 1%의 개선이 쌓이면 큰 차이를 만들어요. 오늘 남긴 이 생각도 그 1%예요.", source: "Million Dollar Habits" },
+      { text: "트레이시가 목표 설정에서 쓰는 '삶의 수레바퀴(Wheel of Life)'는 일·재정·건강·관계 등 여러 영역의 균형을 보는 도구예요. 이 앱의 라이프 헥사곤도 그 원리에서 착안했어요.", source: "Goals!" }
+    ]
+  };
+  /* 한국어 ㅂ 불규칙 형용사(두렵다→두려워/두렵고, 무섭다→무서워/무섭고 등)는 활용형에 따라
+     어간이 달라지므로, 두 형태를 모두 키워드로 넣어야 "두렵고"와 "두려워" 둘 다 잡힌다. */
+  var COACH_KEYWORDS = {
+    stress: ["힘들", "지치", "지쳤", "스트레스", "우울", "불안", "짜증", "속상", "괴로", "괴롭"],
+    fear: ["두려", "두렵", "무섭", "무서", "겁나", "자신 없", "자신이 없", "자신없", "실패할까", "걱정", "못 할 것 같"],
+    decision: ["퇴사", "이직", "그만두", "창업", "사업", "진로", "커리어", "고민"],
+    procrastination: ["미루", "미뤘", "차일피일", "하기 싫", "귀찮"],
+    priority: ["바쁘", "바빴", "바빠", "할 일이 많", "정신없", "우선순위", "여유가 없"],
+    goal: ["목표", "계획", "다짐", "결심", "성장", "도전", "노력", "발전", "꿈"],
+    money: ["돈", "재테크", "저축", "투자", "지출", "빚", "대출", "월급", "부자"],
+    habit: ["습관", "절제", "참았", "유혹", "게을", "늦잠", "작심삼일"],
+    relationship: ["가족", "친구", "관계", "다퉜", "화해", "서운", "연락", "만났"],
+    health: ["운동", "건강", "체력", "컨디션", "피곤"],
+    positive: ["감사", "행복", "뿌듯", "좋았", "기뻤", "만족", "즐거", "즐겁", "성취"],
+    learning: ["배우", "배웠", "공부", "독서", "책"]
+  };
+  /** 동률일 때만 쓰이는 우선순위(감정 상태 -> 구체적 행동 프레임워크 -> 격려 -> 학습 순). */
+  var COACH_BUCKET_PRIORITY = ["stress", "fear", "decision", "procrastination", "priority", "goal", "money", "habit", "health", "relationship", "positive", "learning"];
+  /**
+   * text에 등장하는 키워드 수를 버킷별로 세어, 가장 많이 겹치는 버킷을 고른다(글 하나에 여러
+   * 맥락이 섞여 있어도 가장 관련도 높은 원칙을 골라줄 수 있도록). avoidTexts에 있는 문장은
+   * (같은 버킷 안에 다른 선택지가 남아있는 한) 최근에 이미 받은 문장이라 판단해 가능하면 피한다.
+   */
+  function generateCoachFeedback(text, avoidTexts) {
+    var bestBucket = "default";
+    var bestScore = 0;
+    for (var i = 0; i < COACH_BUCKET_PRIORITY.length; i++) {
+      var key = COACH_BUCKET_PRIORITY[i];
+      var score = COACH_KEYWORDS[key].reduce(function (acc, kw) { return acc + (text.indexOf(kw) !== -1 ? 1 : 0); }, 0);
+      if (score > bestScore) { bestScore = score; bestBucket = key; }
+    }
+    var pool = COACH_FEEDBACK_POOL[bestBucket];
+    var avoid = avoidTexts || [];
+    var candidates = pool.filter(function (item) { return avoid.indexOf(item.text) === -1; });
+    if (!candidates.length) candidates = pool; // 전부 최근에 나온 적이 있다면 그냥 전체 풀에서 다시 고른다
+    var picked = candidates[Math.floor(Math.random() * candidates.length)];
+    return { text: picked.text, source: picked.source, bucket: bestBucket };
+  }
+  function feedbackBoxHtml(r) {
+    var weatherTag = r.weather ? (" · " + weatherIconFor(r.weather.code) + " " + r.weather.temp + "°C 서울 강남") : "";
+    var sourceTag = r.feedbackSource ? (' <span class="tiny" style="color:var(--color-ink-muted);">· 참고: &lt;' + escapeHtml(r.feedbackSource) + '&gt;</span>') : "";
+    var introLine = r.feedbackMode === "llm"
+      ? "Claude API가 브라이언 트레이시의 원칙을 참고해 실시간으로 생성한 피드백이에요"
+      : "브라이언 트레이시의 책·강연 원칙을 바탕으로 정리한 AI 피드백이에요";
+    // 영어 번역은 실제 LLM 호출(설정에 Claude API 키가 있을 때)에서만 함께 만들어진다 - 완전히
+    // 오프라인인 로컬 규칙 기반 모드는 정해진 문장 풀에서 고르는 방식이라 원문을 자연스러운
+    // 영어로 옮길 수 없다. 번역이 없을 땐 그 이유를 안내만 하고 조용히 넘어간다.
+    var translationHtml = r.translationEn
+      ? '<div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--color-border);">' +
+          '<div class="tiny" style="font-weight:700; color:var(--color-ink-muted); margin-bottom:4px;">🇺🇸 영어로 표현하면</div>' +
+          '<div class="small" style="font-style:italic;">' + escapeHtml(r.translationEn) + '</div>' +
+        '</div>'
+      : (r.feedbackMode === "llm" ? "" : '<div class="tiny muted" style="margin-top:8px;">설정에서 Claude API 키를 넣으면 자연스러운 영어 번역도 함께 볼 수 있어요.</div>');
+    return '<div style="background:var(--color-accent-light); border-radius:12px; padding:10px 12px;">' +
+        '<div class="tiny" style="font-weight:700; color:var(--color-brand); margin-bottom:4px;">💬 ' + COACH_NAME + '</div>' +
+        '<div class="tiny muted" style="margin:-2px 0 6px;">' + introLine + weatherTag + sourceTag + '</div>' +
+        '<div class="small">' + escapeHtml(r.feedback) + '</div>' +
+        translationHtml +
+      '</div>';
+  }
+  /**
+   * 설정 화면에서 Anthropic API 키를 넣어둔 경우에만 시도하는 실제 LLM 호출.
+   * 이 앱은 서버가 없는 단일 HTML 파일이라, 브라우저에서 Anthropic API를 직접 호출할 수 있게
+   * 해주는 공식 헤더(anthropic-dangerous-direct-browser-access)를 사용한다. 키는 사용자가
+   * 설정 화면에서 직접 넣어 이 브라우저의 로컬 저장소에만 보관되고, 피드백을 요청하는 순간에만
+   * Anthropic 서버로 전송된다. 네트워크 문제·키 오류·타임아웃 등 어떤 이유로 실패하든 예외를
+   * 던지지 않고 콜백에 null을 넘겨서, 호출부가 항상 로컬 규칙 기반 피드백으로 안전하게 대체할
+   * 수 있게 한다(오프라인에서도 앱이 멈추지 않는다는 이 앱의 핵심 원칙을 그대로 따른다).
+   *
+   * 한 번의 호출로 (1) 코칭 피드백과 (2) 원문을 자연스러운 일상 업무체 영어로 옮긴 번역을
+   * 함께 받는다(API 호출 비용을 두 배로 만들지 않기 위해 두 요청으로 나누지 않았다). 모델이
+   * "FEEDBACK: ... TRANSLATION: ..." 형식으로 답하도록 지시하고, parseCoachResponse가 그
+   * 형식을 파싱한다 - 혹시 모델이 형식을 안 지켜도 전체 응답을 피드백으로만 쓰고 번역은
+   * 조용히 생략하도록 방어적으로 처리한다.
+   */
+  var COACH_SYSTEM_PROMPT = "당신은 개인 자기계발 다이어리 앱에 들어가는 라이프 코치 피드백 도우미입니다. 사용자가 방금 남긴 한국어 생각/일기 글에 대해, 다른 설명이나 인사말 없이 아래 두 줄 형식으로만 정확히 응답하세요.\n\nFEEDBACK: <브라이언 트레이시(Brian Tracy)가 그의 책과 강연에서 널리 알려진 원칙들(예: Eat That Frog!의 미루기 극복법, Goals!의 목표 설정과 '삶의 수레바퀴', No Excuses!의 자기 훈련, ABCDE 기법, 80/20 법칙, 안전지대(Comfort Zone), 제로베이스 사고 등)을 참고한 실용적이고 따뜻한 한국어 조언 2~4문장. 트레이시가 실제로 한 말을 그대로 인용한 것처럼 큰따옴표로 지어내지 말고, 원칙을 자연스럽게 녹여서 조언하세요. 가능하면 관련 책이나 개념 이름을 한 번 언급하세요. 설교하듯 말하지 말고 공감하는 문장으로 시작한 뒤 구체적인 실행 조언으로 이어가세요.>\nTRANSLATION: <사용자가 남긴 원문 한국어 문장을, 미국 사무실 동료에게 편하게 말하듯 자연스러운 일상 업무체(business-casual) 영어 한 문단으로 번역한 것. 딱딱한 직역이 아니라 실제 원어민이 회사에서 흔히 쓰는 자연스러운 표현으로 쓰세요.>\n\n각 항목은 줄바꿈 없이 한 문단으로만 쓰세요.";
+  /** LLM 응답의 "FEEDBACK: ... TRANSLATION: ..." 형식을 파싱한다. 형식을 못 찾으면 전체
+   * 텍스트를 feedback으로만 쓰고 translation은 null로 둔다(번역 없이도 피드백은 살린다). */
+  function parseCoachResponse(raw) {
+    if (!raw) return null;
+    var idx = raw.search(/TRANSLATION\s*:/i);
+    var feedbackPart, translationPart = null;
+    if (idx === -1) {
+      feedbackPart = raw;
+    } else {
+      feedbackPart = raw.slice(0, idx);
+      translationPart = raw.slice(idx).replace(/^TRANSLATION\s*:\s*/i, "").trim() || null;
+    }
+    feedbackPart = feedbackPart.replace(/^FEEDBACK\s*:\s*/i, "").trim();
+    if (!feedbackPart) return null;
+    return { feedback: feedbackPart, translation: translationPart };
+  }
+  function callCoachLLM(text, apiKey, model, cb) {
+    if (!apiKey) { cb(null); return; }
+    var called = false;
+    function done(result) { if (called) return; called = true; cb(result); }
+    var timeoutId = setTimeout(function () { done(null); }, 15000);
+    fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: model || "claude-haiku-4-5-20251001",
+        max_tokens: 500,
+        system: COACH_SYSTEM_PROMPT,
+        messages: [{ role: "user", content: text }]
+      })
+    }).then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    }).then(function (json) {
+      var textOut = json && json.content && json.content[0] && json.content[0].text;
+      done(parseCoachResponse(textOut ? textOut.trim() : null));
+    }).catch(function () {
+      done(null);
+    }).then(function () { clearTimeout(timeoutId); });
+  }
+
+  function renderThoughtForm() {
+    var wrap = el('<div></div>');
+    var db = DB.get();
+    var date = todayISO();
+    var editing = (state.editRecord && state.editRecord.type === "thought") ?
+      db.thoughtRecords.filter(function (x) { return x.id === state.editRecord.id; })[0] : null;
+    var todays = db.thoughtRecords.filter(function (r) { return r.date === date; }).slice().reverse();
+    wrap.innerHTML =
+      (editing ?
+        '<p class="small muted">' + fmtDateKo(editing.date) + ' · ✎ 이 기록을 수정하고 있어요. 내용을 바꾸면 이전 피드백은 초기화돼요.</p>' +
+        '<textarea class="input" id="thoughtInput" rows="4">' + escapeHtml(editing.text) + '</textarea>' +
+        '<button type="button" class="btn btn-primary btn-block" id="thoughtSave" style="margin-top:10px;">수정 완료</button>' +
+        '<button type="button" class="btn btn-block" id="thoughtCancelEdit" style="margin-top:8px;">취소</button>'
+        :
+        '<p class="small muted">' + fmtDateKo(date) + ' · 오늘의 생각을 편하게 남겨보세요. 이 기록은 점수에는 반영되지 않아요.</p>' +
+        '<textarea class="input" id="thoughtInput" rows="4" placeholder="오늘 느낀 감정이나 생각을 자유롭게 적어보세요"></textarea>' +
+        '<button type="button" class="btn btn-primary btn-block" id="thoughtSave" style="margin-top:10px;">저장하기</button>'
+      ) +
+      todays.map(function (r, i) {
+        return '<div style="border-top:1px solid var(--color-border); padding-top:14px; margin-top:16px;">' +
+          '<p class="tiny muted" style="margin:0 0 6px;">' + fmtDateKo(r.date) + '</p>' +
+          '<p style="white-space:pre-wrap; margin:0 0 10px;">' + escapeHtml(r.text) + '</p>' +
+          (r.feedback
+            ? feedbackBoxHtml(r)
+            : '<button type="button" class="btn" data-feedback-id="' + r.id + '">💬 ' + COACH_NAME + '에게 피드백 받기</button>') +
+        '</div>';
+      }).join("");
+    if (editing) {
+      wrap.querySelector("#thoughtCancelEdit").addEventListener("click", cancelEdit);
+    }
+    wrap.querySelector("#thoughtSave").addEventListener("click", function () {
+      var textarea = wrap.querySelector("#thoughtInput");
+      var text = textarea.value.trim();
+      if (!text) { textarea.focus(); return; }
+      var db2 = DB.get();
+      if (editing) {
+        var rec = db2.thoughtRecords.filter(function (x) { return x.id === editing.id; })[0];
+        if (rec) {
+          if (rec.text !== text) { rec.feedback = null; rec.weather = null; rec.feedbackCore = null; rec.feedbackSource = null; rec.feedbackMode = null; rec.translationEn = null; } // 내용이 바뀌면 기존 피드백은 더 이상 맞지 않으므로 초기화
+          rec.text = text;
+        }
+        state.editRecord = null;
+        saveOrToast("수정했어요!");
+        navigate("records");
+        return;
+      }
+      db2.thoughtRecords.push({ id: uid(), date: date, text: text, feedback: null });
+      saveOrToast("저장했어요!");
+      navigate("quick", { quickTab: "thought" });
+    });
+    wrap.querySelectorAll("button[data-feedback-id]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var recId = btn.getAttribute("data-feedback-id");
+        var apiKey = (DB.get().settings.coachApiKey || "").trim();
+        btn.disabled = true;
+        btn.textContent = apiKey ? (COACH_NAME + " 생각 중... (Claude에게 물어보는 중)") : (COACH_NAME + " 생각 중... (오늘 날씨 확인 중)");
+        // 실제 서버 호출은 아니지만, 버튼 클릭 -> 날씨 확인 -> 응답 수신의 흐름을 그대로 재현한다.
+        // fetchWeather는 성공/실패 여부와 관계없이 항상 콜백을 정확히 한 번 호출하므로,
+        // 오프라인이어도 아래 로직은 멈추지 않고 날씨 없이 피드백만 저장한다.
+        setTimeout(function () {
+          fetchWeather(function (weatherData) {
+            /** 저장에 필요한 최신 db/rec을 매번 새로 조회한다(비동기 LLM 호출 도중 데이터가
+             * 바뀌었을 가능성까지 방어적으로 처리하기 위해). */
+            function saveLocalFeedback() {
+              var db2 = DB.get();
+              var rec = db2.thoughtRecords.filter(function (x) { return x.id === recId; })[0];
+              if (rec) {
+                // 최근에 이미 받은 문장(같은 버킷이면)은 가능하면 피해서, 자주 기록할수록 반복되는
+                // 느낌 없이 다양한 원칙을 접할 수 있게 한다.
+                var recentTexts = db2.thoughtRecords
+                  .filter(function (x) { return x.feedbackCore; })
+                  .slice(-6)
+                  .map(function (x) { return x.feedbackCore; });
+                var result = generateCoachFeedback(rec.text, recentTexts);
+                rec.feedbackCore = result.text;
+                rec.feedbackSource = result.source;
+                rec.feedbackMode = "local";
+                rec.feedback = result.text + weatherRemark(weatherData);
+                rec.translationEn = null; // 로컬 규칙 기반 모드는 번역을 만들 수 없다
+                rec.weather = weatherData || null;
+                saveOrToast();
+              }
+              navigate("quick", { quickTab: "thought" });
+            }
+            if (!apiKey) { saveLocalFeedback(); return; }
+            var db0 = DB.get();
+            var rec0 = db0.thoughtRecords.filter(function (x) { return x.id === recId; })[0];
+            if (!rec0) { navigate("quick", { quickTab: "thought" }); return; }
+            callCoachLLM(rec0.text, apiKey, db0.settings.coachModel, function (llmResult) {
+              if (!llmResult) {
+                showToast("AI 호출에 실패해서 로컬 피드백으로 대신했어요");
+                saveLocalFeedback();
+                return;
+              }
+              var db2 = DB.get();
+              var rec = db2.thoughtRecords.filter(function (x) { return x.id === recId; })[0];
+              if (rec) {
+                rec.feedbackCore = llmResult.feedback;
+                rec.feedbackSource = null;
+                rec.feedbackMode = "llm";
+                rec.feedback = llmResult.feedback + weatherRemark(weatherData);
+                rec.translationEn = llmResult.translation || null;
+                rec.weather = weatherData || null;
+                saveOrToast();
+              }
+              navigate("quick", { quickTab: "thought" });
+            });
+          });
+        }, 700);
+      });
+    });
+    return wrap;
+  }
+
+  /* ============================== 투자 기록: 피터 린치 피드백 ============================== */
+  /**
+   * 투자 기록은 "생각 기록"과 동일하게 자유 텍스트 메모이고 점수에는 전혀 반영되지 않는다(별도
+   * 카테고리로 집계되지 않음 - defaultData/hasAnyRecords/activityDatesInMonth/allActivityDates
+   * 에서 달력·연속기록 표시용으로만 쓰이고, 라이프 점수·조화지수·헥사곤 계산에는 관여하지 않는다).
+   * 피드백은 브라이언 트레이시 코치 기능과 달리 항상 로컬 규칙 기반으로만 동작한다(Claude API
+   * 호출·영어 번역 없음) - 대신 내용은 피터 린치의 <월가의 영웅(One Up on Wall Street)>과
+   * <이기는 투자(Beating the Street)> 원칙에서 가져온다.
+   */
+  var INVESTOR_NAME = "Peter Lynch";
+  var INVESTOR_FEEDBACK_POOL = {
+    // 손실·하락·급락에 대한 불안
+    loss: [
+      { text: "린치는 종목을 슬로우 그로워·스톨워트·패스트 그로워·씨클리컬·턴어라운드·자산주라는 여섯 가지 유형으로 나누고, 유형마다 정상적인 등락 폭이 다르다고 말해요. 지금의 하락이 이 종목의 원래 유형에서 있을 수 있는 변동인지, 아니면 스토리 자체가 깨진 신호인지부터 구분해보세요.", source: "One Up on Wall Street" },
+      { text: "\"주식 시장에서 돈을 잃는 사람들은 시장이 흔들릴 때마다 대응하려는 사람들이다\"라는 게 린치의 말이에요. 매도를 고민하기 전에 처음 이 회사를 살 때 세웠던 '스토리'를 다시 꺼내, 매출·이익·부채 같은 숫자가 그 스토리에서 벗어났는지부터 확인해보세요.", source: "One Up on Wall Street" },
+      { text: "린치는 \"14달러에 좋아했던 주식이라면 6달러에는 더 좋아해야 한다\"고 말해요. 펀더멘털이 그대로인데 가격만 빠졌다면, 그건 위험이 아니라 추가로 살 기회였던 경우가 많았다는 게 그의 경험이에요.", source: "Beating the Street" },
+      { text: "하락장에서 린치가 가장 먼저 보는 건 재무상태표예요. 부채가 많은 회사는 경기 침체를 버티지 못하지만, 현금이 많고 부채가 적은 회사는 같은 하락에도 결국 살아남는다고 강조해요. 지금 들고 있는 종목의 부채 수준을 확인해봤는지 점검해보세요.", source: "One Up on Wall Street" }
+    ],
+    // 공포·불안·패닉 매도
+    fear: [
+      { text: "린치는 \"조정을 예상하거나 대비하려다가 잃은 돈이, 실제 조정에서 잃은 돈보다 훨씬 많다\"고 말해요. 지금 느끼는 공포가 이 회사에 대한 새로운 정보 때문인지, 아니면 시장 전체 분위기 때문인지부터 구분해보세요.", source: "One Up on Wall Street" },
+      { text: "린치는 주식 투자에서 성공을 가르는 건 두뇌가 아니라 '배짱(stomach)'이라고 말해요. 시장은 늘 걱정할 거리를 하나씩 만들어내지만, 그 걱정에 매번 반응하지 않고 버티는 힘이 실력이라는 뜻이에요.", source: "One Up on Wall Street" },
+      { text: "\"자신이 무엇을 갖고 있고 왜 갖고 있는지 안다\"는 게 린치가 말하는, 공포를 이기는 가장 확실한 방법이에요. 지금 이 종목을 산 이유를 한 문장으로 다시 말할 수 있다면, 그 이유가 아직 유효한지가 판단 기준이 돼요.", source: "One Up on Wall Street" }
+    ],
+    // 소문·추격매수·급등 종목에 대한 조급함(FOMO)
+    fomo: [
+      { text: "린치가 말하는 '칵테일 파티 이론'에 따르면, 파티에서 사람들이 온통 특정 종목 얘기만 하기 시작할 때가 오히려 시장이 고점에 가까워졌다는 신호일 수 있어요. 지금의 관심이 그런 뒤늦은 소문은 아닌지 점검해보세요.", source: "One Up on Wall Street" },
+      { text: "\"크레용으로 설명할 수 없는 아이디어에는 절대 투자하지 마라\"는 게 린치의 유명한 원칙이에요. 지금 관심 있는 종목이 왜 오르고 있는지, 초등학생도 알아들을 한 문장으로 설명할 수 있는지 스스로 물어보세요.", source: "One Up on Wall Street" },
+      { text: "린치는 '한창 뜨거운 업종의 한창 뜨거운 종목'이야말로 가장 위험한 조합이라고 경고해요. 이미 많이 오른 종목을 뒤늦게 쫓아가기보다, 이 회사의 3~5년 후 이익 성장 스토리가 지금 가격에서도 여전히 매력적인지 계산해보세요.", source: "Beating the Street" }
+    ],
+    // 조급함·단타·타이밍 시도
+    impatience: [
+      { text: "린치가 말하는 '텐배거(tenbagger, 10배 오르는 종목)'는 짧아도 3~5년, 길게는 10년 가까이 들고 있어야 나오는 성과예요. 좋은 회사라고 판단했다면, 조급한 매매가 그 시간을 스스로 걷어차고 있지는 않은지 점검해보세요.", source: "One Up on Wall Street" },
+      { text: "\"시장 타이밍을 맞추려는 시도로 성공한 사람은, 그냥 시장에 계속 머물렀던 사람보다 훨씬 적다\"는 게 린치의 핵심 메시지예요. 사고파는 타이밍보다, 애초에 좋은 회사를 골랐는지가 훨씬 중요해요.", source: "One Up on Wall Street" },
+      { text: "린치는 결국 장기적으로 주가를 움직이는 건 그 회사의 이익(earnings)이라고 말해요. 다만 이익이 주가에 반영되기까지는 시간이 걸리기 때문에, 단기 매매로 그 시차를 이기려는 시도는 대체로 손해로 끝난다고 강조해요.", source: "Beating the Street" }
+    ],
+    // 분석·공부 부족
+    research: [
+      { text: "린치는 \"자신이 아는 것에 투자하라\"고 말하지만, 이건 '좋아하는 제품이니 산다'는 뜻이 아니라 그 다음 반드시 재무제표와 사업 구조를 확인하라는 뜻이라고 강조해요. 직접 써본 경험은 시작점일 뿐, 숫자로 된 확인이 빠지면 안 돼요.", source: "One Up on Wall Street" },
+      { text: "\"돌을 가장 많이 뒤집어보는 사람이 이긴다\"는 게 린치의 리서치 철학이에요. 매장을 직접 가보거나, 최소한 최근 분기 실적 발표와 사업보고서 한 번은 읽어봤는지 스스로 점검해보세요.", source: "One Up on Wall Street" },
+      { text: "린치는 아직 기관투자자와 애널리스트들이 많이 안 보고 있는 회사인지도 중요한 신호로 봐요. 이미 모두가 아는 유명한 회사보다, 아직 덜 알려진 회사를 직접 발굴했을 때 더 큰 기회가 있었다고 말해요.", source: "One Up on Wall Street" },
+      { text: "린치는 P/E(주가수익비율)를 성장률과 따로 보지 말라고 말해요. 이익 성장률에 비해 P/E가 지나치게 높다면, 아무리 좋은 회사라도 지금 가격은 이미 그 성장을 다 반영했을 수 있어요.", source: "One Up on Wall Street" }
+    ],
+    // 장기 보유·목표·적립식 투자
+    longterm: [
+      { text: "\"채권을 선호하는 사람들은 자신이 무엇을 놓치고 있는지 모른다\"는 게 린치의 말이에요. 충분히 긴 기간을 놓고 보면 좋은 회사의 주식이 채권이나 예금보다 훨씬 나은 성과를 냈다고 그는 반복해서 강조해요.", source: "One Up on Wall Street" },
+      { text: "린치는 좋은 회사를 찾은 다음 가장 중요한 건 '그 회사가 왜 좋은지'를 계속 확인하며 버티는 인내심이라고 말해요. 오늘 세운 계획도 분기마다 실적으로 스토리가 유효한지 점검하며 이어가 보세요.", source: "One Up on Wall Street" },
+      { text: "\"텐배거는 하루아침에 오지 않는다\"는 린치의 말처럼, 큰 수익은 대개 몇 년에 걸쳐 이익이 꾸준히 늘어난 결과로 나타나요. 오늘의 기록도 그 몇 년짜리 스토리를 추적하는 습관의 일부예요.", source: "Beating the Street" }
+    ],
+    // 분산투자·포트폴리오 관리(diworsification 포함)
+    diversify: [
+      { text: "린치가 만든 용어 \"diworsification\"은 원래 회사가 자기 사업과 상관없는 곳에 인수합병으로 무리하게 확장해 오히려 가치를 깎아먹는 걸 뜻해요. 개인 투자자도 마찬가지로, 이해 못 하는 종목을 숫자 채우듯 늘리는 건 분산이 아니라 위험이라고 말해요.", source: "One Up on Wall Street" },
+      { text: "린치는 몇 종목을 갖고 있느냐보다, 각 종목을 '한 문장으로 설명할 수 있을 만큼' 잘 알고 있느냐가 훨씬 중요하다고 말해요. 지금 포트폴리오에서 이유를 설명하기 어려운 종목이 있다면 그게 진짜 줄여야 할 대상이에요.", source: "One Up on Wall Street" }
+    ],
+    // 수익·익절·좋은 성과
+    gain: [
+      { text: "린치는 오른 종목을 서둘러 팔고 부진한 종목을 계속 들고 있는 습관을 \"꽃을 뽑고 잡초에 물을 주는 것\"이라 표현하며 경계했어요. 오늘의 수익도, 팔아야 할 이유가 '가격이 올라서'가 아니라 '스토리가 끝나서'인지 구분해보세요.", source: "One Up on Wall Street" },
+      { text: "린치는 좋은 성과를 낸 종목일수록 왜 잘됐는지 복기해두라고 말해요. 처음 세운 스토리(이익 성장, 시장 점유율 등)가 실제로 맞아떨어졌는지 확인하면 다음 종목을 고를 때도 같은 안목을 재현할 수 있어요.", source: "Beating the Street" }
+    ],
+    // 자만·몰빵·과신
+    overconfidence: [
+      { text: "린치는 한두 번의 성공 이후 스스로를 과신하게 되는 순간을 가장 위험한 지점으로 꼽아요. 지금의 확신이 충분한 리서치에 근거한 것인지, 아니면 이전 성공에서 온 자신감일 뿐인지 구분해보세요.", source: "One Up on Wall Street" },
+      { text: "아무리 확신이 강한 종목이라도, 린치는 한 종목에 지나치게 큰 비중을 싣는 걸 경계해요. 예상 못한 악재 하나가 그 회사만의 문제로 끝나지 않고 전체 포트폴리오를 흔들 수 있기 때문이에요.", source: "Beating the Street" }
+    ],
+    // 그 외 전부: 린치의 기본 투자 철학
+    "default": [
+      { text: "린치는 \"당신이 이해하는 회사에 투자하고, 그 회사를 믿을 만한 이유가 있는 한 계속 들고 있어라\"고 말해요. 오늘의 생각도 그 회사의 '스토리'가 여전히 유효한지 점검해보는 좋은 기회예요.", source: "One Up on Wall Street" },
+      { text: "\"크레용으로 설명할 수 없는 아이디어에는 투자하지 마라\"는 린치의 원칙처럼, 오늘 남긴 생각을 한두 문장으로 명확하게 정리할 수 있는지 확인해보세요.", source: "One Up on Wall Street" },
+      { text: "\"주식은 복권이 아니다. 그 뒤에는 항상 회사가 있다\"는 게 린치의 말이에요. 오늘의 판단도 주가 그래프보다 그 회사가 실제로 무슨 사업을 하고 얼마를 버는지에서 다시 출발해보세요.", source: "One Up on Wall Street" },
+      { text: "린치는 아마추어 투자자도 꾸준히 공부하고 기록하면 전문가 못지않은 판단을 할 수 있다고 말해요. 오늘의 이 기록도 '돌을 하나 더 뒤집어보는' 과정의 일부예요.", source: "Beating the Street" }
+    ]
+  };
+  var INVESTOR_KEYWORDS = {
+    loss: ["손실", "하락", "급락", "빠졌", "물렸", "마이너스", "손절", "떨어졌", "떨어져"],
+    fear: ["불안", "공포", "패닉", "무섭", "무서", "두렵", "두려", "겁나", "걱정"],
+    fomo: ["소문", "추격", "급등", "따라 사", "따라사", "핫한", "테마", "리딩방", "몰려"],
+    impatience: ["단타", "타이밍", "조급", "빨리 팔", "빨리 사", "성급", "매매를 자주"],
+    research: ["공부", "분석", "리서치", "재무제표", "사업보고서", "모르는 종목", "잘 모르"],
+    longterm: ["장기", "적립", "존버", "꾸준히", "인내", "오래 보유", "목표"],
+    diversify: ["분산", "포트폴리오", "종목 수", "비중"],
+    gain: ["수익", "익절", "올랐", "뿌듯", "좋은 성과", "이익 실현"],
+    overconfidence: ["몰빵", "확신", "자만", "과신", "올인"]
+  };
+  var INVESTOR_BUCKET_PRIORITY = ["loss", "fear", "fomo", "impatience", "research", "diversify", "overconfidence", "gain", "longterm"];
+  /** generateCoachFeedback과 동일한 방식(키워드 매칭 점수 기반 버킷 선택 + 최근 문장 회피)이지만
+   * 완전히 별도의 풀/키워드를 쓴다 - 투자 기록은 점수 계산과 무관한 독립 기능이다. */
+  function generateInvestorFeedback(text, avoidTexts) {
+    var bestBucket = "default";
+    var bestScore = 0;
+    for (var i = 0; i < INVESTOR_BUCKET_PRIORITY.length; i++) {
+      var key = INVESTOR_BUCKET_PRIORITY[i];
+      var score = INVESTOR_KEYWORDS[key].reduce(function (acc, kw) { return acc + (text.indexOf(kw) !== -1 ? 1 : 0); }, 0);
+      if (score > bestScore) { bestScore = score; bestBucket = key; }
+    }
+    var pool = INVESTOR_FEEDBACK_POOL[bestBucket];
+    var avoid = avoidTexts || [];
+    var candidates = pool.filter(function (item) { return avoid.indexOf(item.text) === -1; });
+    if (!candidates.length) candidates = pool;
+    var picked = candidates[Math.floor(Math.random() * candidates.length)];
+    return { text: picked.text, source: picked.source, bucket: bestBucket };
+  }
+  /** feedbackBoxHtml을 단순화한 버전 - 항상 로컬 규칙 기반이라 날씨 태그·LLM/로컬 모드 분기·
+   * 영어 번역 블록이 전혀 없다. */
+  function investorFeedbackBoxHtml(r) {
+    var sourceTag = r.feedbackSource ? (' <span class="tiny" style="color:var(--color-ink-muted);">· 참고: &lt;' + escapeHtml(r.feedbackSource) + '&gt;</span>') : "";
+    return '<div style="background:var(--color-accent-light); border-radius:12px; padding:10px 12px;">' +
+        '<div class="tiny" style="font-weight:700; color:var(--color-brand); margin-bottom:4px;">💬 ' + INVESTOR_NAME + '</div>' +
+        '<div class="tiny muted" style="margin:-2px 0 6px;">피터 린치의 &lt;월가의 영웅(One Up on Wall Street)&gt; 원칙을 바탕으로 정리한 피드백이에요' + sourceTag + '</div>' +
+        '<div class="small">' + escapeHtml(r.feedback) + '</div>' +
+      '</div>';
+  }
+  /** renderThoughtForm과 거의 동일한 구조지만, 날씨 조회와 Claude API 호출(LLM 모드)이 전혀
+   * 없다 - "단순 기록만, 피드백은 피터 린치 기반"이라는 요건대로 항상 로컬 규칙 기반 피드백만
+   * 제공한다. */
+  function renderInvestmentForm() {
+    var wrap = el('<div></div>');
+    var db = DB.get();
+    var date = todayISO();
+    var editing = (state.editRecord && state.editRecord.type === "investment") ?
+      db.investmentRecords.filter(function (x) { return x.id === state.editRecord.id; })[0] : null;
+    var todays = db.investmentRecords.filter(function (r) { return r.date === date; }).slice().reverse();
+    wrap.innerHTML =
+      (editing ?
+        '<p class="small muted">' + fmtDateKo(editing.date) + ' · ✎ 이 기록을 수정하고 있어요. 내용을 바꾸면 이전 피드백은 초기화돼요.</p>' +
+        '<textarea class="input" id="investmentInput" rows="4">' + escapeHtml(editing.text) + '</textarea>' +
+        '<button type="button" class="btn btn-primary btn-block" id="investmentSave" style="margin-top:10px;">수정 완료</button>' +
+        '<button type="button" class="btn btn-block" id="investmentCancelEdit" style="margin-top:8px;">취소</button>'
+        :
+        '<p class="small muted">' + fmtDateKo(date) + ' · 오늘 떠오른 투자 아이디어나 판단을 편하게 남겨보세요. 이 기록은 점수에는 반영되지 않아요.</p>' +
+        '<textarea class="input" id="investmentInput" rows="4" placeholder="오늘의 투자 생각·매수매도 판단·복기를 자유롭게 적어보세요"></textarea>' +
+        '<button type="button" class="btn btn-primary btn-block" id="investmentSave" style="margin-top:10px;">저장하기</button>'
+      ) +
+      todays.map(function (r, i) {
+        return '<div style="border-top:1px solid var(--color-border); padding-top:14px; margin-top:16px;">' +
+          '<p class="tiny muted" style="margin:0 0 6px;">' + fmtDateKo(r.date) + '</p>' +
+          '<p style="white-space:pre-wrap; margin:0 0 10px;">' + escapeHtml(r.text) + '</p>' +
+          (r.feedback
+            ? investorFeedbackBoxHtml(r)
+            : '<button type="button" class="btn" data-inv-feedback-id="' + r.id + '">💬 ' + INVESTOR_NAME + '에게 피드백 받기</button>') +
+        '</div>';
+      }).join("");
+    if (editing) {
+      wrap.querySelector("#investmentCancelEdit").addEventListener("click", cancelEdit);
+    }
+    wrap.querySelector("#investmentSave").addEventListener("click", function () {
+      var textarea = wrap.querySelector("#investmentInput");
+      var text = textarea.value.trim();
+      if (!text) { textarea.focus(); return; }
+      var db2 = DB.get();
+      if (editing) {
+        var rec = db2.investmentRecords.filter(function (x) { return x.id === editing.id; })[0];
+        if (rec) {
+          if (rec.text !== text) { rec.feedback = null; rec.feedbackCore = null; rec.feedbackSource = null; } // 내용이 바뀌면 기존 피드백은 더 이상 맞지 않으므로 초기화
+          rec.text = text;
+        }
+        state.editRecord = null;
+        saveOrToast("수정했어요!");
+        navigate("records");
+        return;
+      }
+      db2.investmentRecords.push({ id: uid(), date: date, text: text, feedback: null });
+      saveOrToast("저장했어요!");
+      navigate("quick", { quickTab: "investment" });
+    });
+    wrap.querySelectorAll("button[data-inv-feedback-id]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var recId = btn.getAttribute("data-inv-feedback-id");
+        btn.disabled = true;
+        btn.textContent = INVESTOR_NAME + " 생각 중...";
+        setTimeout(function () {
+          var db2 = DB.get();
+          var rec = db2.investmentRecords.filter(function (x) { return x.id === recId; })[0];
+          if (rec) {
+            var recentTexts = db2.investmentRecords
+              .filter(function (x) { return x.feedbackCore; })
+              .slice(-6)
+              .map(function (x) { return x.feedbackCore; });
+            var result = generateInvestorFeedback(rec.text, recentTexts);
+            rec.feedbackCore = result.text;
+            rec.feedbackSource = result.source;
+            rec.feedback = result.text;
+            saveOrToast();
+          }
+          navigate("quick", { quickTab: "investment" });
+        }, 500);
+      });
+    });
+    return wrap;
+  }
+
+  /* ============================== 화면: 전체 기록 ============================== */
+  /** 기록 요약 뒤에 메모를 짧게 덧붙인다(있을 때만). 저장만 되고 안 보이던 메모를 목록에 노출한다. */
+  function memoSuffix(memo) {
+    if (!memo) return "";
+    var m = memo.length > 20 ? memo.slice(0, 20) + "…" : memo;
+    return " · 메모: " + m;
+  }
+  /** 기록 요약 뒤에 만족도를 짧게 덧붙인다(입력된 경우만). */
+  function satisfactionSuffix(n) {
+    return n ? " · 만족 " + n + "/5" : "";
+  }
+  var RECORDS_TYPE_OPTIONS = [
+    ["company", "회사"], ["leave", "퇴근"], ["exercise", "운동"], ["family", "가족"],
+    ["side_project", "프로젝트"], ["extra_income", "소득"], ["self_time", "셀프케어"], ["thought", "생각 기록"], ["investment", "투자 기록"]
+  ];
+
+  function viewRecords() {
+    var db = DB.get();
+    var rows = [];
+    var lastSideProjectLogId = {};
+    db.projectProgressLogs.forEach(function (p) { lastSideProjectLogId[p.project_id] = p.id; });
+
+    db.companyActivities.forEach(function (a) {
+      rows.push({
+        date: a.activity_date, type: "company", label: "회사",
+        summary: ({ lunch: "점심", coffee: "커피", dinner: "저녁", dinner_party: "회식" })[a.subtype] +
+          (a.amount_krw ? " · " + fmtWon(a.amount_krw) : "") +
+          (a.people && a.people.length ? " · " + a.people.join(", ") : "") +
+          satisfactionSuffix(a.satisfaction) + memoSuffix(a.memo),
+        del: function () { db.companyActivities = db.companyActivities.filter(function (x) { return x.id !== a.id; }); },
+        edit: function () { startEdit("company", a.id, "company", { companyTab: "activity" }); }
+      });
+    });
+    db.leaveRecords.forEach(function (l) {
+      rows.push({
+        date: l.work_date, type: "leave", label: "퇴근",
+        summary: l.actual_time + (l.excluded ? " (해당없음)" : l.is_on_time ? " · 정시" : " · " + l.delay_minutes + "분 지연") + memoSuffix(l.memo),
+        del: function () { db.leaveRecords = db.leaveRecords.filter(function (x) { return x.id !== l.id; }); },
+        edit: function () { startEdit("leave", l.id, "company", { companyTab: "leave" }); }
+      });
+    });
+    db.exerciseRecords.forEach(function (r) {
+      // 운동은 종류/완료 여부만 있는 단순 기록이라, 수정 화면 대신 삭제 후 다시 눌러 기록하는 편이 더 간단해서 수정은 제공하지 않는다.
+      rows.push({
+        date: r.activity_date, type: "exercise", label: "운동",
+        summary: ({ gym: "헬스", golf: "골프", walk: "산책" })[r.exercise_type] || r.exercise_type,
+        del: function () { db.exerciseRecords = db.exerciseRecords.filter(function (x) { return x.id !== r.id; }); }
+      });
+    });
+    db.familyRecords.forEach(function (f) {
+      rows.push({
+        date: f.activity_date, type: "family", label: "가족",
+        summary: (f.family_type === "parents" ? "부모님" : "Star") + (f.contacted ? " · 연락함" : "") + (f.minutes_spent ? " · " + f.minutes_spent + "분" : "") + memoSuffix(f.memo),
+        del: function () { db.familyRecords = db.familyRecords.filter(function (x) { return x.id !== f.id; }); },
+        edit: function () { startEdit("family", f.id, "family"); }
+      });
+    });
+    db.projectProgressLogs.forEach(function (p) {
+      var proj = db.sideProjects.filter(function (x) { return x.id === p.project_id; })[0];
+      var row = {
+        date: p.logged_date, type: "side_project", label: "프로젝트",
+        summary: (proj ? proj.name : "삭제된 프로젝트") + " · " + p.progress_before + "→" + p.progress_after,
+        del: function () { db.projectProgressLogs = db.projectProgressLogs.filter(function (x) { return x.id !== p.id; }); }
+      };
+      // 진행률 로그는 체인으로 이어져 있어서, 프로젝트별 가장 최근 로그만 수정을 허용한다.
+      if (proj && lastSideProjectLogId[p.project_id] === p.id) {
+        row.edit = function () { startEdit("side_project", p.id, "side_project", { spTab: "log" }); };
+      }
+      rows.push(row);
+    });
+    db.extraIncomes.forEach(function (i) {
+      rows.push({
+        date: i.occurred_date, type: "extra_income", label: "소득",
+        summary: fmtWon(i.amount_krw) + memoSuffix(i.memo),
+        del: function () { db.extraIncomes = db.extraIncomes.filter(function (x) { return x.id !== i.id; }); },
+        edit: function () { startEdit("extra_income", i.id, "extra_income"); }
+      });
+    });
+    db.selfTimeRecords.forEach(function (s) {
+      rows.push({
+        date: s.start_date, type: "self_time", label: "셀프케어",
+        summary: s.category + (s.duration_hours != null ? " · " + s.duration_hours + "시간" : "") + (s.amount_krw ? " · " + fmtWon(s.amount_krw) : "") + satisfactionSuffix(s.satisfaction) + memoSuffix(s.memo),
+        del: function () { db.selfTimeRecords = db.selfTimeRecords.filter(function (x) { return x.id !== s.id; }); },
+        edit: function () { startEdit("self_time", s.id, "self_time"); }
+      });
+    });
+    db.thoughtRecords.forEach(function (t) {
+      rows.push({
+        date: t.date, type: "thought", label: "생각 기록",
+        summary: t.text.length > 24 ? t.text.slice(0, 24) + "…" : t.text,
+        del: function () { db.thoughtRecords = db.thoughtRecords.filter(function (x) { return x.id !== t.id; }); },
+        edit: function () { startEdit("thought", t.id, "thought"); }
+      });
+    });
+    db.investmentRecords.forEach(function (v) {
+      rows.push({
+        date: v.date, type: "investment", label: "투자 기록",
+        summary: v.text.length > 24 ? v.text.slice(0, 24) + "…" : v.text,
+        del: function () { db.investmentRecords = db.investmentRecords.filter(function (x) { return x.id !== v.id; }); },
+        edit: function () { startEdit("investment", v.id, "investment"); }
+      });
+    });
+
+    rows.sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
+
+    if (!rows.length) {
+      var emptyWrap = el('<div class="card"></div>');
+      emptyWrap.innerHTML = '<div class="empty-note">아직 기록이 없어요. "기록 추가"에서 시작해보세요.</div>';
+      return emptyWrap;
+    }
+
+    var hasAnyFilter = !!(state.recordsDateFilter || state.recordsTypeFilter || state.recordsSearch);
+    var wrap = el('<div></div>');
+    var filterCard = el('<div class="card"></div>');
+    filterCard.innerHTML =
+      '<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">' +
+        '<input class="input" type="date" id="recordsDateInput" style="flex:1 1 140px; min-width:140px;" value="' + (state.recordsDateFilter || "") + '" />' +
+        '<select class="input" id="recordsTypeInput" style="flex:1 1 110px; min-width:110px;">' +
+          '<option value="">전체 영역</option>' +
+          RECORDS_TYPE_OPTIONS.map(function (t) { return '<option value="' + t[0] + '"' + (state.recordsTypeFilter === t[0] ? " selected" : "") + '>' + t[1] + '</option>'; }).join("") +
+        '</select>' +
+        '<input class="input" type="text" id="recordsSearchInput" placeholder="검색 (메모·내용)" style="flex:2 1 160px; min-width:160px;" value="' + escapeHtml(state.recordsSearch || "") + '" />' +
+        (hasAnyFilter ? '<button class="btn" id="recordsFilterClear" style="padding:9px 14px; font-size:13px;">필터 초기화</button>' : "") +
+      '</div>';
+    wrap.appendChild(filterCard);
+
+    var filteredRows = rows.filter(function (r) {
+      if (state.recordsDateFilter && r.date !== state.recordsDateFilter) return false;
+      if (state.recordsTypeFilter && r.type !== state.recordsTypeFilter) return false;
+      if (state.recordsSearch) {
+        var q = state.recordsSearch.toLowerCase();
+        var hay = (r.label + " " + r.summary).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+
+    var listCard = el('<div class="card" style="margin-top:14px;"></div>');
+    if (!filteredRows.length) {
+      listCard.innerHTML = '<div class="empty-note">조건에 맞는 기록이 없어요.</div>';
+    } else {
+      listCard.innerHTML =
+        '<div class="table-wrap"><table class="rt"><thead><tr><th>날짜</th><th>영역</th><th>내용</th><th></th></tr></thead><tbody>' +
+        filteredRows.map(function (r, i) {
+          return '<tr><td>' + fmtDateKo(r.date) + '</td><td>' + r.label + '</td><td>' + escapeHtml(r.summary) + '</td>' +
+            '<td>' +
+            '<div class="rt-actions">' +
+            (r.edit ? '<button class="btn" data-edit-i="' + i + '" style="padding:5px 10px; font-size:12px;">수정</button>' : '') +
+            '<button class="btn" data-del-i="' + i + '" style="padding:5px 10px; font-size:12px;">삭제</button>' +
+            '</div></td></tr>';
+        }).join("") + '</tbody></table></div>';
+      listCard.querySelectorAll("button[data-edit-i]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var idx = Number(btn.getAttribute("data-edit-i"));
+          filteredRows[idx].edit();
+        });
+      });
+      listCard.querySelectorAll("button[data-del-i]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var idx = Number(btn.getAttribute("data-del-i"));
+          if (!confirm("이 기록을 삭제할까요?")) return;
+          filteredRows[idx].del();
+          saveOrToast("삭제했어요");
+          renderView();
+        });
+      });
+    }
+    wrap.appendChild(listCard);
+
+    var dateInput = filterCard.querySelector("#recordsDateInput");
+    dateInput.addEventListener("change", function () {
+      state.recordsDateFilter = dateInput.value || null;
+      renderView();
+    });
+    var typeInput = filterCard.querySelector("#recordsTypeInput");
+    typeInput.addEventListener("change", function () {
+      state.recordsTypeFilter = typeInput.value || null;
+      renderView();
+    });
+    var searchInput = filterCard.querySelector("#recordsSearchInput");
+    searchInput.addEventListener("input", function () {
+      state.recordsSearch = searchInput.value;
+      var cursorPos = searchInput.selectionStart;
+      renderView();
+      // 검색어를 칠 때마다 화면이 다시 그려지므로, 새로 생긴 입력창에 포커스/커서 위치를 그대로 되돌려준다.
+      var freshInput = document.getElementById("recordsSearchInput");
+      if (freshInput) {
+        freshInput.focus();
+        try { freshInput.setSelectionRange(cursorPos, cursorPos); } catch (e) { /* 일부 환경에서는 무시해도 안전 */ }
+      }
+    });
+    var clearBtn = filterCard.querySelector("#recordsFilterClear");
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function () {
+        state.recordsDateFilter = null;
+        state.recordsTypeFilter = null;
+        state.recordsSearch = "";
+        renderView();
+      });
+    }
+
+    return wrap;
+  }
+
+  /* ============================== 화면: 월간 비교 ============================== */
+  function viewCompare() {
+    var ranges = computeRanges(state.compareMode);
+    var current = computeDashboard(ranges.current);
+    var previous = computeDashboard(ranges.previous);
+    var lifeDelta = fmtNum(current.lifeScore - previous.lifeScore);
+    var harmonyDelta = fmtNum(current.harmonyIndex - previous.harmonyIndex);
+    function deltaClass(d) { return d > 0 ? "up" : d < 0 ? "down" : "flat"; }
+    var rows = current.categories.map(function (c) {
+      var p = previous.categories.filter(function (x) { return x.key === c.key; })[0];
+      var card = QUICK_CARDS.filter(function (q) { return q.key === c.key; })[0];
+      return { key: c.key, icon: card ? card.icon : "", prev: p.finalScore, cur: c.finalScore, delta: fmtNum(c.finalScore - p.finalScore) };
+    });
+    // delta가 실제로 양수/음수일 때만 "성장했다/하락했다"고 표시한다.
+    // 정렬만으로 항상 하나씩 골라버리면, 전부 하락한 달에도 "가장 덜 하락한" 영역이
+    // "가장 성장한 영역"으로 오인 표시되는 문제가 있었다.
+    var mostImprovedRaw = rows.slice().sort(function (a, b) { return b.delta - a.delta; })[0];
+    var mostDeclinedRaw = rows.slice().sort(function (a, b) { return a.delta - b.delta; })[0];
+    var mostImproved = mostImprovedRaw && mostImprovedRaw.delta > 0 ? mostImprovedRaw : null;
+    var mostDeclined = mostDeclinedRaw && mostDeclinedRaw.delta < 0 ? mostDeclinedRaw : null;
+
+    var wrap = el('<div></div>');
+    var trendParts = [];
+    if (mostImproved) trendParts.push('가장 성장한 영역: <b style="color:var(--color-positive)">' + CATEGORY_LABELS[mostImproved.key] + '</b>');
+    if (mostDeclined) trendParts.push('개선 필요: <b style="color:var(--color-negative)">' + CATEGORY_LABELS[mostDeclined.key] + '</b>');
+    var rangeLabel = fmtRangeLabel(ranges.currentRaw) + " vs " + fmtRangeLabel(ranges.previousRaw);
+
+    wrap.innerHTML =
+      '<div class="card">' +
+        '<div class="segmented" id="cmpSegmented">' +
+          '<button type="button" data-mode="same-period" class="' + (ranges.mode === "same-period" ? "active" : "") + '">동일 기간</button>' +
+          '<button type="button" data-mode="full-month" class="' + (ranges.mode === "full-month" ? "active" : "") + '">월 전체</button>' +
+        '</div>' +
+        '<p class="range-label">' + rangeLabel + '</p>' +
+      '</div>' +
+      '<div class="stat-grid" style="margin-top:14px;">' +
+        '<div class="stat-card"><div class="stat-label">라이프 점수<button type="button" class="info-btn" data-info="lifeScore" aria-label="라이프 점수란?">ⓘ</button></div><div class="stat-value">' + current.lifeScore + '</div>' +
+          '<div class="stat-delta ' + deltaClass(lifeDelta) + '">' + (lifeDelta >= 0 ? "+" : "") + lifeDelta + '</div></div>' +
+        '<div class="stat-card"><div class="stat-label">조화지수<button type="button" class="info-btn" data-info="harmonyIndex" aria-label="조화지수란?">ⓘ</button></div><div class="stat-value">' + current.harmonyIndex + '</div>' +
+          '<div class="stat-delta ' + deltaClass(harmonyDelta) + '">' + (harmonyDelta >= 0 ? "+" : "") + harmonyDelta + '</div></div>' +
+      '</div>' +
+      (trendParts.length ? '<p class="small muted" style="margin-top:12px;">' + trendParts.join(" · ") + '</p>' : '<p class="small muted" style="margin-top:12px;">이전 기간과 비교해 뚜렷한 변화가 없어요.</p>') +
+      '<div class="card">' +
+        '<div class="chart-legend">' +
+          '<span><span class="dot" style="background:var(--color-brand);"></span>이번 달</span>' +
+          '<span><span class="dot" style="background:var(--color-prev-month);"></span>지난 달</span>' +
+        '</div>' +
+        '<div id="hexHolder2"></div>' +
+      '</div>' +
+      '<div class="card" style="margin-top:14px;">' +
+        '<h2 class="section-title">영역별 비교</h2>' +
+        rows.map(function (r) {
+          return '<div class="cmp-row"><span class="badge badge-' + r.key + '">' + r.icon + '</span>' +
+            '<div class="cmp-info"><div class="cmp-label">' + CATEGORY_LABELS[r.key] + '</div>' +
+            '<div class="cmp-values">' + r.prev.toFixed(1) + ' → ' + r.cur.toFixed(1) + '</div></div>' +
+            '<span class="delta-pill ' + deltaClass(r.delta) + '">' + (r.delta >= 0 ? "+" : "") + r.delta.toFixed(1) + '</span></div>';
+        }).join("") +
+      '</div>';
+    renderHexagon(wrap.querySelector("#hexHolder2"), current.categories, previous.categories);
+    wrap.querySelectorAll("#cmpSegmented button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        state.compareMode = btn.getAttribute("data-mode");
+        navigate("compare");
+      });
+    });
+    return wrap;
+  }
+
+  /* ============================== 화면: 설정 ============================== */
+  function viewSettings() {
+    var db = DB.get();
+    var wrap = el('<div></div>');
+    var theme = db.settings.theme || "light";
+    wrap.innerHTML =
+      '<div class="card">' +
+        '<div style="display:flex; align-items:center; justify-content:space-between;">' +
+          '<div><h2 class="section-title" style="margin-bottom:2px;">화면 테마</h2><p class="tiny muted" style="margin:0;">라이트 · 다크 모드를 전환해요.</p></div>' +
+          '<button class="icon-btn" id="themeToggle" title="다크모드 전환" style="border:1px solid var(--color-border); font-size:18px;">' + (theme === "dark" ? "☀" : "◐") + '</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<h2 class="section-title">정시퇴근 기준시간</h2>' +
+        '<input class="input" type="time" id="thresholdInput" value="' + db.settings.onTimeThreshold + '" />' +
+      '</div>' +
+      '<div class="card">' +
+        '<h2 class="section-title">목표 설정</h2>' +
+        '<div class="row2">' +
+          '<label class="field">' + fieldLabel("부모님 연락(월)") + '<input class="input" type="number" min="0" id="t_famPC" value="' + db.targets.familyParentsContactPerMonth + '" /></label>' +
+          '<label class="field">' + fieldLabel("부모님 교류시간(분/월)") + '<input class="input" type="number" min="0" id="t_famPM" value="' + db.targets.familyParentsMinutesPerMonth + '" /></label>' +
+          '<label class="field">' + fieldLabel("Star 연락(월)") + '<input class="input" type="number" min="0" id="t_famSC" value="' + db.targets.familyStarContactPerMonth + '" /></label>' +
+          '<label class="field">' + fieldLabel("Star 교류시간(분/월)") + '<input class="input" type="number" min="0" id="t_famSM" value="' + db.targets.familyStarMinutesPerMonth + '" /></label>' +
+          '<label class="field">' + fieldLabel("셀프케어 월 목표(시간)") + '<input class="input" type="number" min="0" step="0.5" id="t_self" value="' + db.targets.selfTimeMonthlyHoursTarget + '" /></label>' +
+          '<label class="field">' + fieldLabel("추가소득 월 목표(원)") + '<input class="input" type="number" data-money="1" min="0" step="10000" id="t_income" value="' + db.targets.incomeMonthlyTargetKrw + '" /><span class="amount-hint"></span></label>' +
+          '<label class="field">' + fieldLabel("운동 목표(주당 횟수)") + '<input class="input" type="number" min="1" id="t_exercise" value="' + db.targets.exerciseWeeklyTarget + '" /></label>' +
+          '<label class="field">' + fieldLabel("프로젝트 목표(동시 진행 개수)") + '<input class="input" type="number" min="1" id="t_sideproj" value="' + db.targets.sideProjectActiveTarget + '" /></label>' +
+          '<label class="field">' + fieldLabel("회사 식사·회식 목표(월 기준 횟수)") + '<input class="input" type="number" min="1" id="t_mealTarget" value="' + db.targets.companyMealMonthlyTarget + '" /></label>' +
+        '</div>' +
+        '<p class="tiny muted" style="margin-top:-8px;">운동은 종류(헬스·골프·산책) 상관없이 횟수 이상이면 만점, 프로젝트는 "중단"으로 표시하지 않은 프로젝트 개수가 목표 이상이면 만점이에요. 회사 점수는 정시퇴근 비율 50% + 점심·저녁·회식 횟수(커피 제외) 50%로 계산되고, 식사·회식은 월 목표를 넘으면 오히려 감점돼요. 셀프케어는 입력한 활동 시간 합계가 월 목표 시간 이상이면 만점이에요.</p>' +
+        '<button class="btn btn-primary" id="saveTargets">목표 저장</button>' +
+      '</div>' +
+      '<div class="card">' +
+        '<h2 class="section-title">💬 라이프 코치 AI 설정</h2>' +
+        '<p class="small muted">API 키를 입력하면 "생각 기록"의 피드백을 Claude API가 실시간으로 생성해요. 비워두면 지금처럼 브라우저 안에서만 동작하는 로컬 원칙 매칭 피드백을 사용해요.</p>' +
+        '<label class="field">' + fieldLabel("Anthropic API 키") + '<input class="input" type="password" id="coachApiKeyInput" placeholder="sk-ant-..." value="' + escapeHtml(db.settings.coachApiKey || "") + '" autocomplete="off" /></label>' +
+        '<label class="field" style="margin-top:8px;">' + fieldLabel("모델") + '<input class="input" type="text" id="coachModelInput" value="' + escapeHtml(db.settings.coachModel || "claude-haiku-4-5-20251001") + '" /></label>' +
+        '<p class="tiny muted" style="margin:8px 0 0;">이 키는 서버 없이 이 브라우저(로컬 저장소)에만 저장되고, 피드백을 요청하는 순간에만 Anthropic 서버로 직접 전송돼요. 호출은 유료이며 사용량은 Anthropic 콘솔에서 확인할 수 있어요. 키가 없거나 호출이 실패하면 자동으로 로컬 피드백으로 대체돼요.</p>' +
+        '<button class="btn btn-primary" id="saveCoachApi" style="margin-top:10px;">AI 설정 저장</button>' +
+      '</div>' +
+      '<div class="card">' +
+        '<h2 class="section-title">☁️ 클라우드 동기화 (구글 시트)</h2>' +
+        '<p class="small muted">내 구글 계정의 스프레드시트 하나에 기록을 저장해서, 휴대폰과 PC에서 같은 기록을 이어볼 수 있어요. 켜지 않으면 지금처럼 이 브라우저 안에만 저장돼요. 테마·목표·AI 키 같은 설정은 동기화되지 않고 기기마다 따로 유지돼요.</p>' +
+        '<div id="syncPanel"></div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<h2 class="section-title">데이터 관리</h2>' +
+        '<p class="small muted">모든 데이터는 이 컴퓨터의 브라우저 안에만 저장돼요(서버로 전송되지 않음). 다른 기기에서 이어보려면 내보내기한 파일을 그 기기에서 가져오기 하면 돼요.</p>' +
+        '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
+          '<button class="btn" id="exportBtn">JSON으로 내보내기</button>' +
+          '<label class="btn" style="cursor:pointer;">가져오기<input type="file" id="importFile" accept="application/json" style="display:none;" /></label>' +
+          '<button class="btn btn-danger" id="resetBtn">전체 초기화</button>' +
+        '</div>' +
+      '</div>';
+
+    wrap.querySelector("#themeToggle").addEventListener("click", function () {
+      var db2 = DB.get();
+      db2.settings.theme = db2.settings.theme === "dark" ? "light" : "dark";
+      saveOrToast();
+      applyTheme();
+    });
+    wrap.querySelector("#thresholdInput").addEventListener("change", function (e) {
+      db.settings.onTimeThreshold = e.target.value || "18:20";
+      saveOrToast("저장했어요");
+    });
+    wrap.querySelector("#saveTargets").addEventListener("click", function () {
+      db.targets.familyParentsContactPerMonth = Number(wrap.querySelector("#t_famPC").value) || 0;
+      db.targets.familyParentsMinutesPerMonth = Number(wrap.querySelector("#t_famPM").value) || 0;
+      db.targets.familyStarContactPerMonth = Number(wrap.querySelector("#t_famSC").value) || 0;
+      db.targets.familyStarMinutesPerMonth = Number(wrap.querySelector("#t_famSM").value) || 0;
+      db.targets.sideProjectActiveTarget = Number(wrap.querySelector("#t_sideproj").value) || 1;
+      db.targets.selfTimeMonthlyHoursTarget = Number(wrap.querySelector("#t_self").value) || 1;
+      db.targets.incomeMonthlyTargetKrw = Number(wrap.querySelector("#t_income").value) || 0;
+      db.targets.exerciseWeeklyTarget = Number(wrap.querySelector("#t_exercise").value) || 4;
+      db.targets.companyMealMonthlyTarget = Number(wrap.querySelector("#t_mealTarget").value) || 5;
+      saveOrToast("목표를 저장했어요");
+    });
+    wrap.querySelector("#saveCoachApi").addEventListener("click", function () {
+      db.settings.coachApiKey = wrap.querySelector("#coachApiKeyInput").value.trim();
+      db.settings.coachModel = wrap.querySelector("#coachModelInput").value.trim() || "claude-haiku-4-5-20251001";
+      saveOrToast("AI 설정을 저장했어요");
+    });
+    function renderSyncPanel() {
+      var panel = wrap.querySelector("#syncPanel");
+      if (!panel) return;
+      var s = Sync.getStatus();
+      var clientId = Sync.getClientId();
+      var html = "";
+      if (!clientId) {
+        html +=
+          '<label class="field">' + fieldLabel("구글 OAuth 클라이언트 ID") + '<input class="input" type="text" id="syncClientIdInput" placeholder="xxxxxxxx.apps.googleusercontent.com" /></label>' +
+          '<button class="btn btn-primary" id="syncSaveClientId" style="margin-top:6px;">동기화 설정 저장</button>' +
+          '<details style="margin-top:12px;"><summary class="small" style="cursor:pointer; font-weight:600;">클라이언트 ID는 어떻게 만드나요?</summary>' +
+            '<ol class="small muted" style="padding-left:18px; line-height:1.9; margin-top:8px;">' +
+              '<li>구글 계정으로 <b>Google Cloud Console</b>(console.cloud.google.com)에 접속해 새 프로젝트를 만들어요.</li>' +
+              '<li>"API 및 서비스 → 라이브러리"에서 <b>Google Sheets API</b>와 <b>Google Drive API</b>를 각각 사용 설정해요.</li>' +
+              '<li>"API 및 서비스 → OAuth 동의 화면"에서 User Type을 "외부"로 만들고, 게시 상태는 <b>테스트</b>로 둔 채 본인 구글 계정을 테스트 사용자로 추가해요. 개인용이라 이 상태로도 계속 쓸 수 있어요(구글 심사 불필요).</li>' +
+              '<li>"API 및 서비스 → 사용자 인증 정보 → 사용자 인증 정보 만들기 → OAuth 클라이언트 ID"에서 애플리케이션 유형을 <b>웹 애플리케이션</b>으로 선택해요.</li>' +
+              '<li>"승인된 자바스크립트 원본"에 이 앱이 올라간 주소(예: https://아이디.github.io)를 추가해요.</li>' +
+              '<li>만들어진 <b>클라이언트 ID</b>(...apps.googleusercontent.com으로 끝나는 문자열)를 위 입력칸에 붙여넣고 저장해요.</li>' +
+            '</ol>' +
+          '</details>';
+      } else if (!s.signedIn) {
+        html +=
+          '<p class="small">동기화 설정이 저장돼 있어요.</p>' +
+          (s.error ? '<p class="tiny" style="color:#c0392b;">' + escapeHtml(s.error) + '</p>' : '') +
+          '<button class="btn btn-primary" id="syncSignIn">구글 계정으로 로그인</button> ' +
+          '<button class="btn" id="syncClearClientId" style="margin-top:6px;">설정 지우기</button>';
+      } else {
+        html +=
+          '<p class="small">' + (s.email ? escapeHtml(s.email) + " 계정으로 " : "") + '연결됨' +
+            (s.syncing ? ' · 동기화 중…' : (s.lastSyncedAt ? ' · 마지막 동기화 ' + fmtRelativeTime(s.lastSyncedAt) : ' · 아직 동기화한 적 없음')) + '</p>' +
+          (s.error ? '<p class="tiny" style="color:#c0392b;">' + escapeHtml(s.error) + '</p>' : '') +
+          '<button class="btn btn-primary" id="syncNowBtn"' + (s.syncing ? " disabled" : "") + '>지금 동기화</button> ' +
+          '<button class="btn" id="syncSignOut">로그아웃</button> ' +
+          '<button class="btn" id="syncClearClientId">설정 지우기</button>';
+      }
+      panel.innerHTML = html;
+      var saveIdBtn = panel.querySelector("#syncSaveClientId");
+      if (saveIdBtn) saveIdBtn.addEventListener("click", function () {
+        var v = panel.querySelector("#syncClientIdInput").value.trim();
+        if (!v) { showToast("클라이언트 ID를 입력해주세요", true); return; }
+        Sync.setClientId(v);
+        showToast("저장했어요. 이제 로그인해주세요.");
+      });
+      var signInBtn = panel.querySelector("#syncSignIn");
+      if (signInBtn) signInBtn.addEventListener("click", function () {
+        Sync.signIn(function (err) { if (!err) Sync.syncNow(); });
+      });
+      var syncNowBtn = panel.querySelector("#syncNowBtn");
+      if (syncNowBtn) syncNowBtn.addEventListener("click", function () { Sync.syncNow(); });
+      var signOutBtn = panel.querySelector("#syncSignOut");
+      if (signOutBtn) signOutBtn.addEventListener("click", function () { Sync.signOut(); });
+      var clearBtn = panel.querySelector("#syncClearClientId");
+      if (clearBtn) clearBtn.addEventListener("click", function () {
+        if (!confirm("동기화 설정을 지울까요? (저장된 기록 자체는 지워지지 않고, 구글 시트에 백업된 내용도 그대로 남아있어요)")) return;
+        Sync.signOut(); Sync.setClientId("");
+      });
+    }
+    renderSyncPanel();
+    Sync.on(renderSyncPanel);
+
+    wrap.querySelector("#exportBtn").addEventListener("click", function () {
+      var blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = "life-hexagon-data-" + todayISO() + ".json";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("내보냈어요");
+    });
+    wrap.querySelector("#importFile").addEventListener("change", function (e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        var parsed;
+        try {
+          parsed = JSON.parse(reader.result);
+        } catch (err) {
+          alert("올바른 JSON 파일이 아니에요.");
+          return;
+        }
+        if (!confirm("가져오면 현재 브라우저에 저장된 데이터를 덮어씁니다. 계속할까요?")) return;
+        // JSON 파싱 자체는 성공했으므로, 이후 단계(데이터 반영·화면 갱신)에서 문제가 나도
+        // "파일이 잘못됐다"는 오해를 주지 않도록 별도로 처리한다. normalizeData가 예전 버전
+        // 백업의 누락된 필드를 채워주지만, 혹시 모를 예외에도 안내 문구는 정확하게 보여준다.
+        try {
+          DB.replace(parsed);
+          showToast("가져왔어요");
+          navigate("home");
+        } catch (err) {
+          console.error("가져온 데이터를 반영하는 중 오류가 발생했습니다.", err);
+          alert("파일은 읽었지만 데이터를 적용하는 중 문제가 발생했어요. 페이지를 새로고침한 뒤 다시 시도해주세요.");
+        }
+      };
+      reader.readAsText(file);
+    });
+    wrap.querySelector("#resetBtn").addEventListener("click", function () {
+      if (!confirm("정말 모든 기록을 삭제할까요? 이 동작은 되돌릴 수 없어요.")) return;
+      if (!confirm("한 번 더 확인할게요. 정말 전체 초기화할까요?")) return;
+      DB.reset();
+      showToast("초기화했어요");
+      navigate("home");
+    });
+    return wrap;
+  }
+
+  var VIEWS = { home: viewHome, quick: viewQuickHub, records: viewRecords, compare: viewCompare, settings: viewSettings };
+
+  /* ============================== 초기화 ============================== */
+  function applyTheme() {
+    var theme = DB.get().settings.theme || "light";
+    document.documentElement.setAttribute("data-theme", theme);
+    var btn = document.getElementById("themeToggle");
+    if (btn) btn.textContent = theme === "dark" ? "☀" : "◐";
+  }
+
+  document.getElementById("recordSheetBackdrop").addEventListener("click", closeRecordSheet);
+  document.getElementById("infoSheetBackdrop").addEventListener("click", closeInfoSheet);
+  document.getElementById("infoSheetClose").addEventListener("click", closeInfoSheet);
+  // (ⓘ) 버튼은 여러 화면에서 동적으로 다시 그려지므로, 매번 다시 바인딩하는 대신
+  // 문서 전체에 위임된 클릭 리스너 하나로 처리한다.
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest && e.target.closest(".info-btn");
+    if (btn) openInfoSheet(btn.getAttribute("data-info"));
+  });
+
+  /* 모바일 온스크린 키보드 대응: 키보드가 뜨면 visualViewport 높이가 레이아웃 뷰포트보다
+     확 줄어드는 것을 감지해서 body에 kb-open 클래스를 붙인다(위 CSS가 하단 내비를 숨김).
+     visualViewport API를 지원하지 않는 환경에서는 그냥 조용히 건너뛴다. */
+  if (window.visualViewport) {
+    (function () {
+      var vv = window.visualViewport;
+      function handleViewportResize() {
+        var shrunk = (window.innerHeight - vv.height) > 120;
+        document.body.classList.toggle("kb-open", shrunk);
+      }
+      vv.addEventListener("resize", handleViewportResize);
+      handleViewportResize();
+    })();
+  }
+
+  /* 입력 필드(직접 탭했든, 자동 포커스로 이동했든)에 포커스가 갈 때마다 키보드가 올라오는
+     애니메이션이 끝나길 잠시 기다린 뒤 화면 중앙 쪽으로 스크롤해서, 키보드나 하단 바에
+     가려지지 않게 한다. */
+  document.addEventListener("focusin", function (e) {
+    var el = e.target;
+    if (!el || !el.matches || !el.matches("input, textarea, select")) return;
+    setTimeout(function () {
+      try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (err) { /* 무시 */ }
+    }, 320);
+  });
+
+  // 온라인(https)으로 열었을 때만 서비스워커를 등록해 오프라인 캐싱 + "홈 화면에 추가"를 지원한다.
+  // 로컬 file://로 열었을 때는 서비스워커 자체가 동작하지 않는 컨텍스트라 아무 일도 하지 않는다.
+  if (typeof navigator !== "undefined" && "serviceWorker" in navigator && location.protocol !== "file:") {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () { /* 파일이 없어도(단순 파일 호스팅 등) 무시 */ });
+    });
+  }
+
+  applyTheme();
+  // 클라우드 동기화가 설정돼 있으면(설정 화면에서 구글 클라이언트 ID를 저장한 적이 있으면)
+  // 앱을 열 때마다 조용히 한 번 동기화를 시도한다. 설정한 적이 없으면 아무 일도 하지 않는다.
+  Sync.autoSyncOnLoad();
+  // 앱을 맨 처음 여는 순간 localStorage에 기본 데이터(및 firstUsedAt)를 한 번 기록해 둔다.
+  // 예전엔 이 저장이 accountAgeDays()(홈 화면 렌더링 중 호출) 안에서만 일어났는데, 기록이
+  // 하나도 없는 신규 사용자에게는 홈 화면 대신 환영 화면을 보여주면서 accountAgeDays()가
+  // 아예 호출되지 않게 되어, 그 사용자의 첫 기록 전까지는 localStorage 자체가 비어 있는
+  // 상태가 됐다. 화면 종류와 상관없이 앱 시작 시 항상 한 번 저장되도록 여기서 처리한다.
+  accountAgeDays();
+  navigate("home");
+})();
+</script>
+</body>
+</html>

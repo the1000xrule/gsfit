@@ -283,6 +283,28 @@
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
   .toast.toast-error { background: var(--color-negative); color: #fff; }
 
+  .lock-screen {
+    display: none; position: fixed; inset: 0; z-index: 999; background: var(--color-bg);
+    flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center;
+  }
+  .lock-screen.show { display: flex; }
+  .lock-screen .lock-icon { width: 64px; height: 64px; border-radius: 18px; margin-bottom: 18px; box-shadow: var(--shadow-card); }
+  .lock-screen .lock-title { font-size: 20px; font-weight: 800; color: var(--color-ink); margin-bottom: 6px; }
+  .lock-screen .lock-sub { font-size: 13px; color: var(--color-ink-muted); margin-bottom: 26px; max-width: 300px; line-height: 1.6; }
+  .lock-screen input.pin-input {
+    width: 200px; text-align: center; letter-spacing: 10px; font-size: 22px; font-weight: 700;
+    padding: 12px 14px; border-radius: 14px; border: 1px solid var(--color-border);
+    background: var(--color-surface); color: var(--color-ink);
+  }
+  .lock-screen input.pin-input:focus { outline: none; border-color: var(--color-brand); }
+  .lock-screen .lock-error { color: var(--color-negative); font-size: 13px; min-height: 18px; margin-top: 12px; font-weight: 600; }
+  .lock-screen .btn { width: 200px; margin-top: 14px; }
+  .lock-screen.shake .pin-input { animation: lockShake .35s; }
+  @keyframes lockShake {
+    10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); }
+    30%, 50%, 70% { transform: translateX(-7px); } 40%, 60% { transform: translateX(7px); }
+  }
+
   .legend-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; font-size: 12px; }
   .legend-item { background: var(--color-press); border-radius: 12px; padding: 10px 12px; }
   .legend-item b { font-weight: 700; margin-left: 4px; }
@@ -386,6 +408,7 @@
   </div>
 </div>
 <div class="toast" id="toast"></div>
+<div class="lock-screen" id="lockScreen" role="dialog" aria-modal="true" aria-label="화면 잠금"></div>
 
 <script>
 (function () {
@@ -832,6 +855,112 @@
     };
   })();
   if (typeof window !== "undefined") window.Sync = Sync;
+
+  /* ============================== 화면 잠금 (선택 기능, PIN) ==============================
+   * GitHub Pages 같은 공개 주소로 올렸을 때, 그 링크를 우연히 아는 사람이 열어봐도 곧바로
+   * 내용이 보이지 않도록 앱 진입 시 PIN을 한 번 물어보는 가벼운 가림막이다. 서버 없는 완전한
+   * 클라이언트 앱이라 진짜 보안은 아니고(브라우저 개발자도구로 우회 가능), "잠깐 남의 손에
+   * 있을 때 실수로 안 보이게" 하는 용도다. 기본은 꺼져 있고 설정 화면에서 PIN을 만들어야
+   * 켜지며, 켜지 않으면 지금까지와 완전히 동일하게 바로 앱이 열린다.
+   */
+  var Lock = (function () {
+    var LS_SALT = "lifehex_lock_salt";
+    var LS_HASH = "lifehex_lock_hash";
+    var SS_UNLOCKED = "lifehex_unlocked";
+
+    function isSet() { return !!localStorage.getItem(LS_HASH); }
+    function isUnlockedThisSession() {
+      try { return sessionStorage.getItem(SS_UNLOCKED) === "1"; } catch (e) { return false; }
+    }
+    function markUnlocked() {
+      try { sessionStorage.setItem(SS_UNLOCKED, "1"); } catch (e) { /* 무시 */ }
+    }
+    function randomSalt() {
+      if (window.crypto && window.crypto.getRandomValues) {
+        var arr = new Uint8Array(16);
+        window.crypto.getRandomValues(arr);
+        return Array.prototype.map.call(arr, function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+      }
+      return Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
+    // Web Crypto(SHA-256)를 쓸 수 있으면 그걸 쓰고, 아주 예전 브라우저처럼 지원하지 않는
+    // 환경이면 간단한 문자열 해시로 조용히 대체한다 - "실수로 보이는 것 방지"가 목적이라,
+    // 최악의 경우에도 기능 자체가 멈추지 않는 게 더 중요하다.
+    function fallbackHash(text) {
+      var h = 0;
+      for (var i = 0; i < text.length; i++) { h = ((h << 5) - h + text.charCodeAt(i)) | 0; }
+      return "fb" + Math.abs(h).toString(36);
+    }
+    function hash(text, cb) {
+      if (window.crypto && window.crypto.subtle && window.isSecureContext !== false) {
+        try {
+          var enc = new TextEncoder().encode(text);
+          window.crypto.subtle.digest("SHA-256", enc).then(function (buf) {
+            var arr = Array.prototype.map.call(new Uint8Array(buf), function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+            cb(arr);
+          }).catch(function () { cb(fallbackHash(text)); });
+          return;
+        } catch (e) { /* 아래 fallback으로 진행 */ }
+      }
+      cb(fallbackHash(text));
+    }
+    function setPin(pin, cb) {
+      var salt = randomSalt();
+      hash(salt + ":" + pin, function (h) {
+        localStorage.setItem(LS_SALT, salt);
+        localStorage.setItem(LS_HASH, h);
+        markUnlocked();
+        cb && cb();
+      });
+    }
+    function clearPin() {
+      localStorage.removeItem(LS_SALT);
+      localStorage.removeItem(LS_HASH);
+    }
+    function verify(pin, cb) {
+      var salt = localStorage.getItem(LS_SALT) || "";
+      hash(salt + ":" + pin, function (h) { cb(h === localStorage.getItem(LS_HASH)); });
+    }
+    return {
+      isSet: isSet, isUnlockedThisSession: isUnlockedThisSession, markUnlocked: markUnlocked,
+      setPin: setPin, clearPin: clearPin, verify: verify
+    };
+  })();
+
+  function renderLockGate(onUnlock) {
+    var box = document.getElementById("lockScreen");
+    box.innerHTML =
+      '<img class="lock-icon" src="icon-192.png" onerror="this.style.display=\'none\'" alt="" />' +
+      '<div class="lock-title">GS Fit 잠금 해제</div>' +
+      '<div class="lock-sub">이 기기에서 설정한 PIN을 입력해주세요.</div>' +
+      '<input class="pin-input" id="lockPinInput" type="password" inputmode="numeric" autocomplete="off" maxlength="12" />' +
+      '<button class="btn btn-primary" id="lockUnlockBtn">확인</button>' +
+      '<div class="lock-error" id="lockError"></div>';
+    box.classList.add("show");
+    var input = box.querySelector("#lockPinInput");
+    var errorEl = box.querySelector("#lockError");
+    setTimeout(function () { input.focus(); }, 50);
+    function attempt() {
+      var pin = input.value;
+      if (!pin) return;
+      Lock.verify(pin, function (ok) {
+        if (ok) {
+          Lock.markUnlocked();
+          box.classList.remove("show");
+          box.innerHTML = "";
+          onUnlock();
+        } else {
+          errorEl.textContent = "PIN이 올바르지 않아요.";
+          box.classList.add("shake");
+          setTimeout(function () { box.classList.remove("shake"); }, 400);
+          input.value = "";
+          input.focus();
+        }
+      });
+    }
+    box.querySelector("#lockUnlockBtn").addEventListener("click", attempt);
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); attempt(); } });
+  }
 
   function uid() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -3340,6 +3469,11 @@
         '</div>' +
       '</div>' +
       '<div class="card">' +
+        '<h2 class="section-title">🔒 화면 잠금 (PIN)</h2>' +
+        '<p class="small muted">이 앱을 온라인 주소로 올려서 쓸 때, 그 링크를 우연히 아는 사람이 열어봐도 곧바로 기록이 보이지 않도록 앱을 열 때마다 PIN을 물어봐요. 완전한 보안은 아니고(브라우저 안에서만 확인하는 가벼운 가림막), 로컬 파일로만 쓰신다면 켜지 않으셔도 괜찮아요.</p>' +
+        '<div id="lockPanel"></div>' +
+      '</div>' +
+      '<div class="card">' +
         '<h2 class="section-title">정시퇴근 기준시간</h2>' +
         '<input class="input" type="time" id="thresholdInput" value="' + db.settings.onTimeThreshold + '" />' +
       '</div>' +
@@ -3409,6 +3543,57 @@
       db.settings.coachModel = wrap.querySelector("#coachModelInput").value.trim() || "claude-haiku-4-5-20251001";
       saveOrToast("AI 설정을 저장했어요");
     });
+    function renderLockPanel() {
+      var panel = wrap.querySelector("#lockPanel");
+      if (!panel) return;
+      var html = "";
+      if (!Lock.isSet()) {
+        html +=
+          '<label class="field">' + fieldLabel("새 PIN (숫자 4자리 이상)") + '<input class="input" type="password" inputmode="numeric" autocomplete="off" id="lockNewPin" maxlength="12" placeholder="예: 1234" /></label>' +
+          '<label class="field">' + fieldLabel("PIN 확인") + '<input class="input" type="password" inputmode="numeric" autocomplete="off" id="lockNewPinConfirm" maxlength="12" /></label>' +
+          '<button class="btn btn-primary" id="lockSetBtn">PIN 설정</button>' +
+          '<p class="tiny muted" style="margin-top:8px;">PIN은 이 브라우저 안에만 저장돼요. PIN을 잊어버리면 이 브라우저의 사이트 데이터를 지워야 하는데, 그러면 저장된 기록도 함께 사라져요. 꼭 기억해두시고, 걱정되면 미리 "JSON으로 내보내기"로 백업해두세요.</p>';
+      } else {
+        html +=
+          '<p class="small">🔒 화면 잠금이 켜져 있어요.</p>' +
+          '<button class="btn" id="lockChangeBtn">PIN 변경</button> ' +
+          '<button class="btn btn-danger" id="lockRemoveBtn">화면 잠금 끄기</button>';
+      }
+      panel.innerHTML = html;
+      var setBtn = panel.querySelector("#lockSetBtn");
+      if (setBtn) setBtn.addEventListener("click", function () {
+        var p1 = panel.querySelector("#lockNewPin").value;
+        var p2 = panel.querySelector("#lockNewPinConfirm").value;
+        if (!/^\d{4,12}$/.test(p1)) { showToast("숫자 4자리 이상으로 입력해주세요", true); return; }
+        if (p1 !== p2) { showToast("PIN이 서로 달라요", true); return; }
+        Lock.setPin(p1, function () { showToast("화면 잠금을 켰어요"); renderLockPanel(); });
+      });
+      var changeBtn = panel.querySelector("#lockChangeBtn");
+      if (changeBtn) changeBtn.addEventListener("click", function () {
+        var cur = prompt("현재 PIN을 입력해주세요");
+        if (cur == null) return;
+        Lock.verify(cur, function (ok) {
+          if (!ok) { showToast("현재 PIN이 올바르지 않아요", true); return; }
+          var next = prompt("새 PIN을 입력해주세요 (숫자 4자리 이상)");
+          if (next == null) return;
+          if (!/^\d{4,12}$/.test(next)) { showToast("숫자 4자리 이상으로 입력해주세요", true); return; }
+          Lock.setPin(next, function () { showToast("PIN을 변경했어요"); });
+        });
+      });
+      var removeBtn = panel.querySelector("#lockRemoveBtn");
+      if (removeBtn) removeBtn.addEventListener("click", function () {
+        var cur = prompt("현재 PIN을 입력하면 화면 잠금을 끌 수 있어요");
+        if (cur == null) return;
+        Lock.verify(cur, function (ok) {
+          if (!ok) { showToast("현재 PIN이 올바르지 않아요", true); return; }
+          Lock.clearPin();
+          showToast("화면 잠금을 껐어요");
+          renderLockPanel();
+        });
+      });
+    }
+    renderLockPanel();
+
     function renderSyncPanel() {
       var panel = wrap.querySelector("#syncPanel");
       if (!panel) return;
@@ -3569,17 +3754,27 @@
     });
   }
 
-  applyTheme();
-  // 클라우드 동기화가 설정돼 있으면(설정 화면에서 구글 클라이언트 ID를 저장한 적이 있으면)
-  // 앱을 열 때마다 조용히 한 번 동기화를 시도한다. 설정한 적이 없으면 아무 일도 하지 않는다.
-  Sync.autoSyncOnLoad();
-  // 앱을 맨 처음 여는 순간 localStorage에 기본 데이터(및 firstUsedAt)를 한 번 기록해 둔다.
-  // 예전엔 이 저장이 accountAgeDays()(홈 화면 렌더링 중 호출) 안에서만 일어났는데, 기록이
-  // 하나도 없는 신규 사용자에게는 홈 화면 대신 환영 화면을 보여주면서 accountAgeDays()가
-  // 아예 호출되지 않게 되어, 그 사용자의 첫 기록 전까지는 localStorage 자체가 비어 있는
-  // 상태가 됐다. 화면 종류와 상관없이 앱 시작 시 항상 한 번 저장되도록 여기서 처리한다.
-  accountAgeDays();
-  navigate("home");
+  function bootApp() {
+    applyTheme();
+    // 클라우드 동기화가 설정돼 있으면(설정 화면에서 구글 클라이언트 ID를 저장한 적이 있으면)
+    // 앱을 열 때마다 조용히 한 번 동기화를 시도한다. 설정한 적이 없으면 아무 일도 하지 않는다.
+    Sync.autoSyncOnLoad();
+    // 앱을 맨 처음 여는 순간 localStorage에 기본 데이터(및 firstUsedAt)를 한 번 기록해 둔다.
+    // 예전엔 이 저장이 accountAgeDays()(홈 화면 렌더링 중 호출) 안에서만 일어났는데, 기록이
+    // 하나도 없는 신규 사용자에게는 홈 화면 대신 환영 화면을 보여주면서 accountAgeDays()가
+    // 아예 호출되지 않게 되어, 그 사용자의 첫 기록 전까지는 localStorage 자체가 비어 있는
+    // 상태가 됐다. 화면 종류와 상관없이 앱 시작 시 항상 한 번 저장되도록 여기서 처리한다.
+    accountAgeDays();
+    navigate("home");
+  }
+  // 화면 잠금(PIN)을 설정해둔 적이 있고, 이 브라우저 탭에서 아직 풀지 않았다면 앱을 바로
+  // 열지 않고 PIN 입력 화면부터 보여준다. 설정한 적이 없으면(기본값) 지금까지와 동일하게
+  // 잠금 화면 없이 바로 시작한다.
+  if (Lock.isSet() && !Lock.isUnlockedThisSession()) {
+    renderLockGate(bootApp);
+  } else {
+    bootApp();
+  }
 })();
 </script>
 </body>

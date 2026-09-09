@@ -682,6 +682,7 @@
     var LS_CLIENT_ID = "lifehex_sync_client_id";
     var LS_SHEET_ID = "lifehex_sync_sheet_id";
     var LS_LAST_REMOTE = "lifehex_sync_last_remote";
+    var LS_TOKEN_CACHE = "lifehex_sync_token_cache";
     var SCOPES = "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email";
 
     var accessToken = null;
@@ -690,6 +691,29 @@
     var listeners = [];
     var status = { configured: !!getClientId(), signedIn: false, syncing: false, lastSyncedAt: null, email: null, error: null };
     var pushDebounceTimer = null;
+
+    // 접속 토큰을 메모리에만 두면(새로고침/재실행 때마다 사라짐) 자동 동기화가 매번 구글 로그인
+    // 창을 다시 띄우게 된다. 그래서 만료시각과 함께 localStorage에 잠깐 캐시해두고, 만료 전까지는
+    // 재로그인 없이 그대로 재사용한다. drive.file(앱이 만든 파일만) + spreadsheets 스코프로 이미
+    // 제한돼 있고, 토큰 자체도 구글이 발급한 단기(보통 1시간) 토큰이라 노출 위험은 API 키보다 훨씬
+    // 낮다고 보고 내린 절충이다. 로그아웃하거나 클라이언트 ID를 바꾸면 캐시도 함께 지운다.
+    function saveTokenCache(token, expiresInSec) {
+      try {
+        var ttlMs = (Number(expiresInSec) || 3300) * 1000; // 응답에 없으면 55분으로 가정(구글 기본 60분보다 여유)
+        localStorage.setItem(LS_TOKEN_CACHE, JSON.stringify({ token: token, expiresAt: Date.now() + ttlMs }));
+      } catch (e) { /* 캐시 저장 실패해도 메모리 토큰은 이미 있으니 무시 */ }
+    }
+    function loadTokenCache() {
+      try {
+        var raw = localStorage.getItem(LS_TOKEN_CACHE);
+        if (!raw) return null;
+        var parsed = JSON.parse(raw);
+        if (!parsed || !parsed.token || !parsed.expiresAt) return null;
+        if (parsed.expiresAt - 60000 <= Date.now()) return null; // 만료 1분 전부터는 만료 취급(여유분)
+        return parsed.token;
+      } catch (e) { return null; }
+    }
+    function clearTokenCache() { try { localStorage.removeItem(LS_TOKEN_CACHE); } catch (e) { /* 무시 */ } }
 
     function emit() { listeners.forEach(function (fn) { try { fn(status); } catch (e) { /* 무시 */ } }); }
     function on(fn) { listeners.push(fn); }
@@ -701,6 +725,7 @@
       status.configured = !!v;
       accessToken = null; status.signedIn = false; status.email = null; status.error = null;
       gisReady = false; tokenClient = null;
+      clearTokenCache();
       if (v) loadGis();
       emit();
     }
@@ -744,6 +769,7 @@
         tokenClient.callback = function (resp) {
           if (resp.error) { status.error = "로그인이 취소됐거나 실패했어요."; emit(); cb && cb(new Error(resp.error)); return; }
           accessToken = resp.access_token;
+          saveTokenCache(resp.access_token, resp.expires_in);
           status.signedIn = true; status.error = null;
           fetchEmail();
           emit();
@@ -758,12 +784,21 @@
         try { google.accounts.oauth2.revoke(accessToken, function () {}); } catch (e) { /* 무시 */ }
       }
       accessToken = null;
+      clearTokenCache();
       status.signedIn = false; status.email = null; status.error = null;
       emit();
     }
     function ensureToken(cb) {
       if (!getClientId()) { cb(new Error("설정 필요")); return; }
       if (accessToken) { cb(null); return; }
+      var cached = loadTokenCache();
+      if (cached) {
+        accessToken = cached;
+        status.signedIn = true; status.error = null;
+        if (!status.email) fetchEmail();
+        cb(null);
+        return;
+      }
       loadGis();
       function attempt(triesLeft) {
         if (!tokenClient) {
@@ -774,6 +809,7 @@
         tokenClient.callback = function (resp) {
           if (resp.error) { cb(new Error(resp.error)); return; }
           accessToken = resp.access_token;
+          saveTokenCache(resp.access_token, resp.expires_in);
           status.signedIn = true; status.error = null;
           if (!status.email) fetchEmail();
           cb(null);
